@@ -869,12 +869,26 @@ function getGPS() {
 
 function previewImg(input) {
   if (input.files && input.files[0]) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
+    var file = input.files[0];
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      // Resize to max 800px wide
+      var maxW = 800;
+      var ratio = Math.min(1, maxW / img.width);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      var resized = canvas.toDataURL('image/jpeg', 0.6);
       var prev = document.getElementById('photoPreview');
-      prev.src = e.target.result; prev.style.display = 'block';
+      prev.src = resized;
+      prev.style.display = 'block';
+      window._photoData = resized;
+      URL.revokeObjectURL(url);
     };
-    reader.readAsDataURL(input.files[0]);
+    img.src = url;
   }
 }
 
@@ -919,6 +933,10 @@ function submitSignal() {
     lat: signal.lat || null,
     lng: signal.lng || null
   };
+  // Store photo reference if available
+  if (window._photoData) {
+    signal.hasPhoto = true;
+  }
 
   supabase_insert(supaData, function(err, data) {
     if (err) {
@@ -946,6 +964,7 @@ function resetForm() {
   document.getElementById('nomCitoyen').value = '';
   document.getElementById('telCitoyen').value = '';
   document.getElementById('photoPreview').style.display = 'none';
+  window._photoData = null;
   document.getElementById('gpsBtn').textContent = '📡 Détecter ma position GPS';
   document.getElementById('gpsBtn').classList.remove('located');
   document.getElementById('gpsBtn').disabled = false;
