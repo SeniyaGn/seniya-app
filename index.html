@@ -767,6 +767,58 @@ function loadFromSupabase() {
   });
 }
 
+// ===== PIN SYSTEM =====
+var COORD_PIN = "2601"; // Code PIN coordinateur
+var currentPin = "";
+
+function showRoleOverlay() {
+  if (role === 'coordinateur') {
+    // Already coordinateur - switch back to citoyen
+    setRole('citoyen');
+    return;
+  }
+  currentPin = "";
+  updatePinDots();
+  document.getElementById('pinError').style.display = 'none';
+  document.getElementById('roleOverlay').classList.add('show');
+}
+
+function pinKey(k) {
+  if (currentPin.length < 4) {
+    currentPin += k;
+    updatePinDots();
+    if (currentPin.length === 4) {
+      setTimeout(pinSubmit, 200);
+    }
+  }
+}
+
+function pinClear() {
+  currentPin = currentPin.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (var i = 1; i <= 4; i++) {
+    var dot = document.getElementById('d' + i);
+    if (dot) {
+      dot.style.background = i <= currentPin.length ? 'var(--g2)' : 'transparent';
+    }
+  }
+}
+
+function pinSubmit() {
+  if (currentPin === COORD_PIN) {
+    document.getElementById('roleOverlay').classList.remove('show');
+    setRole('coordinateur');
+    currentPin = "";
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    currentPin = "";
+    updatePinDots();
+  }
+}
+
 // ===== BOOT =====
 setTimeout(function() {
   document.getElementById('splash').classList.add('hide');
@@ -794,7 +846,7 @@ function goSignal() { goPage('signal'); }
 function goSignalQuartier(q) { goPage('signal'); document.getElementById('quartier').value = q; }
 
 // ===== ROLE =====
-function showRoleOverlay() { document.getElementById('roleOverlay').classList.add('show'); }
+// showRoleOverlay moved to PIN system above
 
 function setRole(r) {
   role = r;
