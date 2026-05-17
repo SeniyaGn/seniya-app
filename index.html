@@ -647,18 +647,30 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 <!-- ROLE OVERLAY -->
 <div class="role-overlay" id="roleOverlay">
   <div class="role-sheet">
-    <div class="role-sheet-title">Choisir votre profil</div>
-    <div class="role-sheet-sub">Sélectionnez votre rôle pour accéder aux bonnes fonctionnalités</div>
-    <div class="role-opt sel" onclick="setRole('citoyen')" id="roleCitoyen">
-      <div class="role-opt-icon">👤</div>
-      <div><div class="role-opt-name">Citoyen</div><div class="role-opt-desc">Signaler des problèmes de salubrité</div></div>
-      <div class="role-check">✓</div>
+    <div class="role-sheet-title">🔐 Accès Coordinateur</div>
+    <div class="role-sheet-sub">Entrez le code PIN à 4 chiffres</div>
+    <div id="pinDisplay" style="display:flex;gap:12px;justify-content:center;margin:20px 0;">
+      <div id="d1" style="width:18px;height:18px;border-radius:50%;border:2px solid #1a6b3c;background:transparent;"></div>
+      <div id="d2" style="width:18px;height:18px;border-radius:50%;border:2px solid #1a6b3c;background:transparent;"></div>
+      <div id="d3" style="width:18px;height:18px;border-radius:50%;border:2px solid #1a6b3c;background:transparent;"></div>
+      <div id="d4" style="width:18px;height:18px;border-radius:50%;border:2px solid #1a6b3c;background:transparent;"></div>
     </div>
-    <div class="role-opt" onclick="setRole('coordinateur')" id="roleCoord">
-      <div class="role-opt-icon">👷</div>
-      <div><div class="role-opt-name">Coordinateur / Agent</div><div class="role-opt-desc">Gérer les signalements — Commune de Lambanyi</div></div>
-      <div class="role-check">✓</div>
+    <div id="pinError" style="color:#d32f2f;font-size:13px;text-align:center;margin-bottom:12px;display:none;">❌ Code incorrect. Réessayez.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto 16px;">
+      <button onclick="pinKey('1')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">1</button>
+      <button onclick="pinKey('2')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">2</button>
+      <button onclick="pinKey('3')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">3</button>
+      <button onclick="pinKey('4')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">4</button>
+      <button onclick="pinKey('5')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">5</button>
+      <button onclick="pinKey('6')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">6</button>
+      <button onclick="pinKey('7')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">7</button>
+      <button onclick="pinKey('8')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">8</button>
+      <button onclick="pinKey('9')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">9</button>
+      <button onclick="pinClear()" style="padding:18px;font-size:16px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">⌫</button>
+      <button onclick="pinKey('0')" style="padding:18px;font-size:22px;font-weight:700;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;">0</button>
+      <button onclick="pinSubmit()" style="padding:18px;font-size:20px;border:none;border-radius:12px;background:#1a6b3c;color:#fff;cursor:pointer;">✓</button>
     </div>
+    <button onclick="document.getElementById('roleOverlay').classList.remove('show')" style="width:100%;padding:14px;border:1.5px solid #dde8e2;border-radius:12px;background:#fff;font-size:14px;cursor:pointer;color:#4a6b57;font-family:inherit;">Annuler</button>
   </div>
 </div>
 
