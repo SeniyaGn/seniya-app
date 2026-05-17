@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SÈNIYA — Lambanyi</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --g1: #0d3d1f;
+  --g2: #1a6b3c;
+  --g3: #2d8653;
+  --g4: #4db97a;
+  --g5: #e8f5ee;
+  --gold: #c8a84b;
+  --gold2: #f0d878;
+  --red: #d32f2f;
+  --orange: #e65100;
+  --blue: #1565c0;
+  --white: #ffffff;
+  --bg: #f4f7f5;
+  --card: #ffffff;
+  --border: #dde8e2;
+  --text: #0d1f14;
+  --text2: #4a6b57;
+  --text3: #8aab96;
+  --shadow-sm: 0 2px 8px rgba(13,61,31,0.08);
+  --shadow: 0 4px 20px rgba(13,61,31,0.12);
+  --shadow-lg: 0 8px 40px rgba(13,61,31,0.18);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior: smooth; }
+body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+/* ===== SPLASH ===== */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, var(--g1) 0%, #0a2a16 50%, var(--g2) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+#splash.hide { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+.splash-logo-img { width: 90px; height: 90px; object-fit: contain; filter: brightness(0) invert(1); margin-bottom: 20px; }
+.splash-name { font-family: "Syne", sans-serif; font-size: 42px; font-weight: 800; color: #fff; letter-spacing: 6px; }
+.splash-name span { color: var(--gold); }
+.splash-tagline { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; margin-bottom: 48px; }
+.splash-bar { width: 200px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+.splash-progress { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 10px; animation: progress 2s ease forwards; }
+@keyframes progress { from { width: 0; } to { width: 100%; } }
+
+/* ===== APP ===== */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+#app.ready { display: flex; }
+
+/* ===== TOPBAR ===== */
+.topbar {
+  background: linear-gradient(135deg, var(--g1), var(--g2));
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-logo-img { width: 38px; height: 38px; object-fit: contain; background: rgba(255,255,255,0.12); border-radius: 10px; padding: 4px; }
+.topbar-name { font-family: "Syne", sans-serif; font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 2px; line-height: 1; }
+.topbar-name span { color: var(--gold); }
+.topbar-commune { font-size: 10px; color: rgba(255,255,255,0.6); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.topbar-role-btn {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; color: #fff;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.topbar-role-btn:hover { background: rgba(255,255,255,0.22); }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: #fff;
+  display: flex;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px 8px;
+  cursor: pointer; transition: all 0.2s;
+  position: relative;
+}
+.nav-item .nav-icon { font-size: 22px; line-height: 1; margin-bottom: 3px; transition: transform 0.2s; }
+.nav-item .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.3px; text-transform: uppercase; }
+.nav-item.active .nav-label { color: var(--g2); }
+.nav-item.active .nav-icon { transform: scale(1.15); }
+.nav-item.active::after { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; background: var(--g2); border-radius: 0 0 4px 4px; }
+.nav-badge { position: absolute; top: 8px; right: calc(50% - 18px); background: var(--red); color: #fff; border-radius: 10px; font-size: 9px; font-weight: 700; padding: 1px 5px; min-width: 16px; text-align: center; }
+
+/* ===== PAGES ===== */
+.page { display: none; padding-bottom: 80px; }
+.page.active { display: block; }
+
+/* ===== HOME ===== */
+.home-hero {
+  background: linear-gradient(140deg, var(--g1) 0%, var(--g2) 70%, var(--g3) 100%);
+  padding: 24px 20px 28px;
+  position: relative; overflow: hidden;
+}
+.home-hero::before {
+  content: ""; position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+.hero-label { font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+.hero-title { font-family: "Syne", sans-serif; font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+.hero-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 20px; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kpi {
+  background: rgba(255,255,255,0.1); border-radius: var(--radius-sm);
+  padding: 14px 8px; text-align: center;
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+}
+.kpi-num { font-family: "Syne", sans-serif; font-size: 26px; font-weight: 800; color: var(--gold2); line-height: 1; }
+.kpi-label { font-size: 10px; color: rgba(255,255,255,0.65); margin-top: 4px; line-height: 1.3; }
+
+/* Quick report button */
+.quick-report {
+  margin: -1px 16px 0; position: relative; z-index: 10;
+  background: var(--gold); border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 8px 32px rgba(200,168,75,0.4);
+  cursor: pointer; transition: all 0.2s;
+  border: none; width: calc(100% - 32px);
+}
+.quick-report:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(200,168,75,0.5); }
+.quick-report:active { transform: scale(0.98); }
+.quick-report-icon { font-size: 32px; }
+.quick-report-text { flex: 1; text-align: left; }
+.quick-report-title { font-family: "Syne", sans-serif; font-size: 16px; font-weight: 800; color: var(--g1); }
+.quick-report-sub { font-size: 11px; color: rgba(13,61,31,0.65); margin-top: 2px; }
+.quick-report-arrow { font-size: 20px; color: var(--g1); opacity: 0.6; }
+
+/* Section */
+.section { padding: 20px 16px 0; }
+.section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-family: "Syne", sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
+.section-link { font-size: 12px; font-weight: 600; color: var(--g2); cursor: pointer; }
+
+/* Quartier cards */
+.quartier-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.quartier-card {
+  background: var(--card); border-radius: var(--radius-sm);
+  padding: 14px 10px; text-align: center;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+}
+.quartier-card:hover { border-color: var(--g2); background: var(--g5); }
+.quartier-icon { font-size: 24px; margin-bottom: 6px; }
+.quartier-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.quartier-count { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* Signal cards */
+.signal-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 10px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 12px;
+  cursor: pointer; transition: all 0.2s;
+  border-left: 4px solid var(--border);
+}
+.signal-card:hover { box-shadow: var(--shadow); transform: translateX(3px); }
+.signal-card.nouveau { border-left-color: var(--red); }
+.signal-card.encours { border-left-color: var(--orange); }
+.signal-card.resolu { border-left-color: var(--g2); }
+.signal-card-emoji { font-size: 26px; flex-shrink: 0; }
+.signal-card-body { flex: 1; min-width: 0; }
+.signal-card-title { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.signal-card-meta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+.badge-nouveau { background: #fde8e8; color: var(--red); }
+.badge-encours { background: #fff3e0; color: var(--orange); }
+.badge-resolu { background: var(--g5); color: var(--g2); }
+
+/* Empty */
+.empty { text-align: center; padding: 48px 20px; }
+.empty-icon { font-size: 52px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; color: var(--text3); line-height: 1.6; }
+
+/* ===== SIGNALEMENT PAGE ===== */
+.signal-page { padding: 16px; padding-bottom: 100px; }
+
+.step-indicator {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 20px; padding: 0 4px;
+}
+.step { display: flex; align-items: center; flex: 1; }
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--border); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  flex-shrink: 0; transition: all 0.3s;
+}
+.step.done .step-dot { background: var(--g2); border-color: var(--g2); color: #fff; }
+.step.active .step-dot { background: var(--gold); border-color: var(--gold); color: var(--g1); }
+.step-line { flex: 1; height: 2px; background: var(--border); transition: background 0.3s; }
+.step.done .step-line { background: var(--g2); }
+
+.form-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 14px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+}
+.form-card-hdr { font-family: "Syne", sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.type-btn {
+  padding: 14px 6px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); cursor: pointer; text-align: center; transition: all 0.2s;
+}
+.type-btn:active { transform: scale(0.95); }
+.type-btn.sel { border-color: var(--g2); background: var(--g5); }
+.type-icon { font-size: 26px; display: block; margin-bottom: 6px; }
+.type-label { font-size: 10px; font-weight: 700; color: var(--text2); line-height: 1.2; }
+.type-btn.sel .type-label { color: var(--g2); }
+
+.form-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+.form-select, .form-input, .form-textarea {
+  width: 100%; padding: 13px 14px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-family: "Plus Jakarta Sans", sans-serif; font-size: 14px; color: var(--text);
+  background: var(--bg); outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.form-select:focus, .form-input:focus, .form-textarea:focus { border-color: var(--g2); background: #fff; box-shadow: 0 0 0 3px rgba(45,134,83,0.1); }
+.form-textarea { height: 90px; resize: none; }
+
+.gps-btn {
+  width: 100%; padding: 13px;
+  border: 2px solid var(--g2); border-radius: var(--radius-sm);
+  background: #fff; color: var(--g2);
+  font-family: "Plus Jakarta Sans", sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s;
+}
+.gps-btn:hover, .gps-btn.located { background: var(--g2); color: #fff; border-color: var(--g2); }
+.gps-result { margin-top: 8px; padding: 10px 12px; background: var(--g5); border-radius: var(--radius-sm); font-size: 12px; color: var(--g2); display: none; }
+
+.photo-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm);
+  padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg);
+}
+.photo-zone:hover { border-color: var(--g2); background: var(--g5); }
+.photo-zone-icon { font-size: 36px; margin-bottom: 8px; }
+.photo-zone-text { font-size: 13px; color: var(--text3); }
+.photo-zone-text b { color: var(--g2); }
+#photoPreview { width: 100%; border-radius: var(--radius-sm); max-height: 220px; object-fit: cover; display: none; margin-top: 12px; }
+
+.urgence-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.urgence-btn {
+  padding: 12px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); cursor: pointer; text-align: center; transition: all 0.2s;
+  font-size: 12px; font-weight: 600; color: var(--text2);
+}
+.urgence-btn.sel-normal { border-color: var(--g2); background: var(--g5); color: var(--g2); }
+.urgence-btn.sel-urgent { border-color: var(--red); background: #fde8e8; color: var(--red); }
+
+.btn-submit {
+  width: 100%; padding: 17px;
+  background: linear-gradient(135deg, var(--g2), var(--g3));
+  color: #fff; border: none; border-radius: var(--radius);
+  font-family: "Syne", sans-serif; font-size: 16px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 6px 24px rgba(26,107,60,0.35);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(26,107,60,0.4); }
+.btn-submit:active { transform: scale(0.98); }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+
+/* ===== CARTE ===== */
+#map { height: calc(100vh - 140px); width: 100%; }
+.map-controls {
+  position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: #fff; border-radius: 24px; padding: 10px 20px;
+  display: flex; gap: 16px; box-shadow: var(--shadow-lg); z-index: 500;
+  white-space: nowrap;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ===== DASHBOARD ===== */
+.dashboard { padding: 16px; padding-bottom: 100px; }
+
+.dash-hero {
+  background: linear-gradient(135deg, var(--g1), #1a3d22);
+  border-radius: var(--radius); padding: 22px;
+  margin-bottom: 16px; position: relative; overflow: hidden;
+}
+.dash-hero::after { content: "LAMBANYI"; position: absolute; right: -10px; bottom: -20px; font-family: "Syne", sans-serif; font-size: 72px; font-weight: 800; color: rgba(255,255,255,0.04); letter-spacing: 2px; white-space: nowrap; }
+.dash-hero-title { font-family: "Syne", sans-serif; font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+.dash-hero-sub { font-size: 11px; color: rgba(255,255,255,0.55); margin-bottom: 18px; }
+.dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dash-kpi { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 6px; text-align: center; }
+.dash-kpi-num { font-family: "Syne", sans-serif; font-size: 22px; font-weight: 800; color: var(--gold2); }
+.dash-kpi-label { font-size: 9px; color: rgba(255,255,255,0.55); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Progress bars */
+.progress-section { background: var(--card); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.progress-title { font-family: "Syne", sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+.progress-item { margin-bottom: 12px; }
+.progress-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.progress-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.progress-val { font-size: 12px; font-weight: 700; color: var(--text); }
+.progress-bar { height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+/* Filters */
+.filters { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+.filters::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 7px 14px; border-radius: 20px; white-space: nowrap;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--card); color: var(--text2);
+  transition: all 0.2s; flex-shrink: 0;
+}
+.filter-chip.active { background: var(--g2); color: #fff; border-color: var(--g2); }
+
+/* Dashboard signal item */
+.dash-signal {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 10px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+}
+.dash-signal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dash-signal-type { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.dash-signal-meta { font-size: 11px; color: var(--text3); margin-bottom: 8px; line-height: 1.5; }
+.dash-signal-desc { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; background: var(--bg); padding: 10px 12px; border-radius: var(--radius-sm); }
+.dash-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.dash-btn {
+  padding: 9px 14px; border: none; border-radius: var(--radius-sm);
+  font-family: "Plus Jakarta Sans", sans-serif; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.btn-encours { background: #fff3e0; color: var(--orange); }
+.btn-encours:hover { background: var(--orange); color: #fff; }
+.btn-resolu { background: var(--g5); color: var(--g2); }
+.btn-resolu:hover { background: var(--g2); color: #fff; }
+.btn-wa { background: #e7f8ee; color: #25d366; }
+.btn-wa:hover { background: #25d366; color: #fff; }
+.btn-urgent { background: #fde8e8; color: var(--red); }
+
+/* ===== MODAL SUCCESS ===== */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.overlay.show { opacity: 1; pointer-events: all; }
+.modal { background: #fff; border-radius: 24px; padding: 36px 28px; text-align: center; max-width: 300px; width: 100%; transform: scale(0.85) translateY(20px); transition: all 0.3s; }
+.overlay.show .modal { transform: scale(1) translateY(0); }
+.modal-icon { font-size: 60px; margin-bottom: 14px; }
+.modal-title { font-family: "Syne", sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
+.modal-text { font-size: 13px; color: var(--text3); line-height: 1.6; margin-bottom: 22px; }
+.modal-ref { display: inline-block; background: var(--g5); color: var(--g2); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 20px; font-family: monospace; letter-spacing: 1px; }
+.modal-btn { width: 100%; padding: 15px; background: var(--g2); color: #fff; border: none; border-radius: var(--radius-sm); font-family: "Syne", sans-serif; font-size: 15px; font-weight: 800; cursor: pointer; }
+.modal-btn-wa { width: 100%; padding: 13px; background: #25d366; color: #fff; border: none; border-radius: var(--radius-sm); font-family: "Syne", sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ===== ROLE MODAL ===== */
+.role-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; align-items: flex-end; }
+.role-overlay.show { opacity: 1; pointer-events: all; }
+.role-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 28px 20px 36px; width: 100%; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.role-overlay.show .role-sheet { transform: translateY(0); }
+.role-sheet-title { font-family: "Syne", sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.role-sheet-sub { font-size: 13px; color: var(--text3); margin-bottom: 22px; }
+.role-opt { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: var(--radius-sm); border: 2px solid var(--border); cursor: pointer; margin-bottom: 10px; transition: all 0.2s; }
+.role-opt:hover, .role-opt.sel { border-color: var(--g2); background: var(--g5); }
+.role-opt-icon { font-size: 32px; flex-shrink: 0; }
+.role-opt-name { font-size: 15px; font-weight: 700; }
+.role-opt-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.role-check { font-size: 18px; color: var(--g2); margin-left: auto; opacity: 0; }
+.role-opt.sel .role-check { opacity: 1; }
+
+/* Animations */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.fade-up { animation: fadeUp 0.4s ease forwards; }
+@keyframes bounceIn { 0% { transform: scale(0.8); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.bounce { animation: bounceIn 0.4s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="splash-logo-img" alt="SÈNIYA">
+  <div class="splash-name">SÈN<span>I</span>YA</div>
+  <div class="splash-tagline">Commune de Lambanyi · Conakry</div>
+  <div class="splash-bar"><div class="splash-progress"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="topbar-logo-img" alt="SÈNIYA">
+      <div>
+        <div class="topbar-name">SÈN<span>I</span>YA</div>
+        <div class="topbar-commune">Lambanyi · Conakry</div>
+      </div>
+    </div>
+    <div class="topbar-role-btn" onclick="showRoleOverlay()" id="roleBtn">👤 Citoyen</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="home-hero">
+      <div class="hero-label">Bienvenue sur</div>
+      <div class="hero-title">SÈNIYA Lambanyi</div>
+      <div class="hero-sub">Signalement & Gestion de la Salubrité Urbaine</div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-num" id="kpiTotal">0</div><div class="kpi-label">Signalements</div></div>
+        <div class="kpi"><div class="kpi-num" id="kpiEncours">0</div><div class="kpi-label">En cours</div></div>
+        <div class="kpi"><div class="kpi-num" id="kpiResolu">0</div><div class="kpi-label">Résolus</div></div>
+      </div>
+    </div>
+
+    <button class="quick-report" onclick="goSignal()">
+      <div class="quick-report-icon">📢</div>
+      <div class="quick-report-text">
+        <div class="quick-report-title">Signaler un problème</div>
+        <div class="quick-report-sub">Dépôt sauvage, caniveau, voirie...</div>
+      </div>
+      <div class="quick-report-arrow">→</div>
+    </button>
+
+    <div class="section">
+      <div class="section-hdr">
+        <div class="section-title">Quartiers pilotes</div>
+      </div>
+      <div class="quartier-row">
+        <div class="quartier-card" onclick="goSignalQuartier('Nongo')">
+          <div class="quartier-icon">🏘️</div>
+          <div class="quartier-name">Nongo</div>
+          <div class="quartier-count" id="qNongo">0 signalement(s)</div>
+        </div>
+        <div class="quartier-card" onclick="goSignalQuartier('Kiroti')">
+          <div class="quartier-icon">🏘️</div>
+          <div class="quartier-name">Kiroti</div>
+          <div class="quartier-count" id="qKiroti">0 signalement(s)</div>
+        </div>
+        <div class="quartier-card" onclick="goSignalQuartier('Lambanyi Centre')">
+          <div class="quartier-icon">🏘️</div>
+          <div class="quartier-name">Lambanyi</div>
+          <div class="quartier-count" id="qLambanyi">0 signalement(s)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:20px;">
+      <div class="section-hdr">
+        <div class="section-title">Signalements récents</div>
+        <div class="section-link" onclick="goPage('map')">Voir la carte →</div>
+      </div>
+      <div id="recentList"></div>
+    </div>
+
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- SIGNALEMENT -->
+  <div class="page" id="page-signal">
+    <div class="signal-page">
+      <div class="step-indicator">
+        <div class="step active" id="step1"><div class="step-dot">1</div><div class="step-line"></div></div>
+        <div class="step" id="step2"><div class="step-dot">2</div><div class="step-line"></div></div>
+        <div class="step" id="step3"><div class="step-dot">3</div><div class="step-line"></div></div>
+        <div class="step" id="step4"><div class="step-dot">4</div></div>
+      </div>
+
+      <!-- Type -->
+      <div class="form-card fade-up">
+        <div class="form-card-hdr">⚠️ Type de problème</div>
+        <div class="type-grid">
+          <div class="type-btn" onclick="selType('depot',this)" data-type="depot"><span class="type-icon">🗑️</span><span class="type-label">Dépôt sauvage</span></div>
+          <div class="type-btn" onclick="selType('caniveau',this)" data-type="caniveau"><span class="type-icon">🚿</span><span class="type-label">Caniveau bouché</span></div>
+          <div class="type-btn" onclick="selType('voirie',this)" data-type="voirie"><span class="type-icon">🛣️</span><span class="type-label">Voirie dégradée</span></div>
+          <div class="type-btn" onclick="selType('eau',this)" data-type="eau"><span class="type-icon">💧</span><span class="type-label">Eau stagnante</span></div>
+          <div class="type-btn" onclick="selType('feu',this)" data-type="feu"><span class="type-icon">🔥</span><span class="type-label">Brûlage sauvage</span></div>
+          <div class="type-btn" onclick="selType('autre',this)" data-type="autre"><span class="type-icon">⚠️</span><span class="type-label">Autre</span></div>
+        </div>
+      </div>
+
+      <!-- Localisation -->
+      <div class="form-card fade-up">
+        <div class="form-card-hdr">📍 Localisation</div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Quartier *</label>
+          <select class="form-select" id="quartier">
+            <option value="">Sélectionner le quartier</option>
+            <option value="Nongo">Nongo</option>
+            <option value="Kiroti">Kiroti</option>
+            <option value="Lambanyi Centre">Lambanyi Centre</option>
+            <option value="Autre">Autre quartier</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Repère (optionnel)</label>
+          <input type="text" class="form-input" id="repere" placeholder="Ex: Près du marché central, carrefour...">
+        </div>
+        <button class="gps-btn" id="gpsBtn" onclick="getGPS()">
+          📡 Détecter ma position GPS
+        </button>
+        <div class="gps-result" id="gpsResult"></div>
+      </div>
+
+      <!-- Urgence -->
+      <div class="form-card fade-up">
+        <div class="form-card-hdr">🚨 Niveau d'urgence</div>
+        <div class="urgence-row">
+          <div class="urgence-btn" onclick="selUrgence('normal',this)" id="urgNormal">📋 Normal</div>
+          <div class="urgence-btn" onclick="selUrgence('urgent',this)" id="urgUrgent">🚨 Urgent</div>
+        </div>
+      </div>
+
+      <!-- Photo -->
+      <div class="form-card fade-up">
+        <div class="form-card-hdr">📸 Photo du problème</div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="previewImg(this)">
+        <div class="photo-zone" onclick="document.getElementById('photoInput').click()">
+          <div class="photo-zone-icon">📷</div>
+          <div class="photo-zone-text">Appuyer pour <b>prendre une photo</b><br>ou choisir depuis la galerie</div>
+        </div>
+        <img id="photoPreview" src="" alt="">
+      </div>
+
+      <!-- Description + Infos -->
+      <div class="form-card fade-up">
+        <div class="form-card-hdr">💬 Détails</div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Description *</label>
+          <textarea class="form-textarea" id="desc" placeholder="Décrivez le problème observé..."></textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Votre nom (optionnel)</label>
+          <input type="text" class="form-input" id="nomCitoyen" placeholder="Prénom et nom">
+        </div>
+        <div>
+          <label class="form-label">Téléphone (optionnel)</label>
+          <input type="tel" class="form-input" id="telCitoyen" placeholder="6XX XX XX XX">
+        </div>
+      </div>
+
+      <button class="btn-submit" id="submitBtn" onclick="submitSignal()">
+        <span>📢</span> Envoyer le signalement
+      </button>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- CARTE -->
+  <div class="page" id="page-map" style="position:relative;">
+    <div id="map"></div>
+    <div class="map-controls">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Nouveau</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>En cours</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--g2)"></div>Résolu</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Collecte</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page" id="page-dashboard">
+    <div class="dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-title">📊 Tableau de bord — Coordinateur</div>
+        <div class="dash-hero-sub">Commune de Lambanyi · Mise à jour en temps réel</div>
+        <div class="dash-kpis">
+          <div class="dash-kpi"><div class="dash-kpi-num" id="dTotal">0</div><div class="dash-kpi-label">Total</div></div>
+          <div class="dash-kpi"><div class="dash-kpi-num" id="dNouveau">0</div><div class="dash-kpi-label">Nouveaux</div></div>
+          <div class="dash-kpi"><div class="dash-kpi-num" id="dEncours">0</div><div class="dash-kpi-label">En cours</div></div>
+          <div class="dash-kpi"><div class="dash-kpi-num" id="dResolu">0</div><div class="dash-kpi-label">Résolus</div></div>
+        </div>
+      </div>
+
+      <!-- Progress by quartier -->
+      <div class="progress-section" id="progressSection">
+        <div class="progress-title">📍 Activité par quartier</div>
+        <div id="progressBars"></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-chip active" onclick="setFilter('tous',this)">Tous</div>
+        <div class="filter-chip" onclick="setFilter('nouveau',this)">🔴 Nouveaux</div>
+        <div class="filter-chip" onclick="setFilter('encours',this)">🟠 En cours</div>
+        <div class="filter-chip" onclick="setFilter('resolu',this)">✅ Résolus</div>
+        <div class="filter-chip" onclick="setFilter('urgent',this)">🚨 Urgents</div>
+        <div class="filter-chip" onclick="setFilter('Nongo',this)">Nongo</div>
+        <div class="filter-chip" onclick="setFilter('Kiroti',this)">Kiroti</div>
+      </div>
+
+      <div id="dashList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="nav-item active" onclick="goPage('home')" id="nav-home">
+    <div class="nav-icon">🏠</div><div class="nav-label">Accueil</div>
+  </div>
+  <div class="nav-item" onclick="goPage('signal')" id="nav-signal">
+    <div class="nav-icon">📢</div><div class="nav-label">Signaler</div>
+  </div>
+  <div class="nav-item" onclick="goPage('map'); initMap()" id="nav-map">
+    <div class="nav-icon">🗺️</div><div class="nav-label">Carte</div>
+  </div>
+  <div class="nav-item" onclick="goPage('dashboard')" id="nav-dashboard" style="display:none">
+    <div class="nav-icon">📊</div><div class="nav-label">Dashboard</div>
+    <div class="nav-badge" id="navBadge" style="display:none">0</div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="overlay" id="successOverlay">
+  <div class="modal">
+    <div class="modal-icon bounce">✅</div>
+    <div class="modal-title">Signalement envoyé !</div>
+    <div class="modal-ref" id="modalRef">SEN-0000</div>
+    <div class="modal-text">Votre signalement a été enregistré. Le coordinateur de Lambanyi sera notifié immédiatement.</div>
+    <button class="modal-btn-wa" onclick="notifyWASuccess()" id="waSuccessBtn">💬 Notifier le coordinateur sur WhatsApp</button>
+    <button class="modal-btn" style="margin-top:8px;" onclick="closeSuccess()">Retour à l'accueil</button>
+  </div>
+</div>
+
+<!-- ROLE OVERLAY -->
+<div class="role-overlay" id="roleOverlay">
+  <div class="role-sheet">
+    <div class="role-sheet-title">Choisir votre profil</div>
+    <div class="role-sheet-sub">Sélectionnez votre rôle pour accéder aux bonnes fonctionnalités</div>
+    <div class="role-opt sel" onclick="setRole('citoyen')" id="roleCitoyen">
+      <div class="role-opt-icon">👤</div>
+      <div><div class="role-opt-name">Citoyen</div><div class="role-opt-desc">Signaler des problèmes de salubrité</div></div>
+      <div class="role-check">✓</div>
+    </div>
+    <div class="role-opt" onclick="setRole('coordinateur')" id="roleCoord">
+      <div class="role-opt-icon">👷</div>
+      <div><div class="role-opt-name">Coordinateur / Agent</div><div class="role-opt-desc">Gérer les signalements — Commune de Lambanyi</div></div>
+      <div class="role-check">✓</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SUPABASE CONFIG =====
+var SUPABASE_URL = "https://cfuaxymixutyezprqown.supabase.co";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYnNlIiwicmVmIjoiY2Z1YXh5bWl4dXR5ZXpwcnFvd24iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc0NzUwMDI0NCwiZXhwIjoyMDYzMDc2MjQ0fQ.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+
+function supabase_insert(data, callback) {
+  fetch(SUPABASE_URL + "/rest/v1/signalements", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Prefer": "return=representation"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) { callback(null, d); })
+  .catch(function(e) { callback(e, null); });
+}
+
+function supabase_select(callback) {
+  fetch(SUPABASE_URL + "/rest/v1/signalements?order=created_at.desc&limit=100", {
+    method: "GET",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) { callback(null, d); })
+  .catch(function(e) { callback(e, null); });
+}
+
+function supabase_update(id, data, callback) {
+  fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(r) { callback(null); })
+  .catch(function(e) { callback(e); });
+}
+
+// ===== STATE =====
+var DB = JSON.parse(localStorage.getItem('seniya_v2') || '[]');
+var role = localStorage.getItem('seniya_role') || 'citoyen';
+var curFilter = 'tous';
+var selTypeVal = '';
+var selUrgenceVal = 'normal';
+var gpsLat = null, gpsLng = null;
+var mapReady = false;
+var lMap = null;
+var lastSignal = null;
+
+var COORD_WA = '224XXXXXXXXX'; // Remplacer par le vrai numéro
+
+var TYPES = {
+  depot: '🗑️ Dépôt sauvage',
+  caniveau: '🚿 Caniveau bouché',
+  voirie: '🛣️ Voirie dégradée',
+  eau: '💧 Eau stagnante',
+  feu: '🔥 Brûlage sauvage',
+  autre: '⚠️ Autre problème'
+};
+
+// ===== LOAD FROM SUPABASE =====
+function loadFromSupabase() {
+  supabase_select(function(err, data) {
+    if (err || !data || !Array.isArray(data)) {
+      console.log("Using localStorage fallback");
+      return;
+    }
+    // Map Supabase fields to app format
+    DB = data.map(function(s) {
+      return {
+        id: s.id,
+        ref: s.ref || ("SEN-" + s.id),
+        type: s.type,
+        typeLabel: s.type_label,
+        quartier: s.quartier,
+        repere: s.repere || "",
+        desc: s.description,
+        urgence: s.urgence || "normal",
+        nom: s.nom || "Anonyme",
+        tel: s.tel || "",
+        statut: s.statut || "nouveau",
+        lat: s.lat,
+        lng: s.lng,
+        date: s.created_at ? new Date(s.created_at).toLocaleDateString("fr-FR", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "",
+        ts: s.id
+      };
+    });
+    localStorage.setItem('seniya_v2', JSON.stringify(DB));
+    refresh();
+    if (document.getElementById('page-dashboard').classList.contains('active')) {
+      renderDash(); renderProgress();
+    }
+  });
+}
+
+// ===== BOOT =====
+setTimeout(function() {
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(function() {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('app').classList.add('ready');
+    applyRole(role);
+    loadFromSupabase();
+    refresh();
+  }, 500);
+}, 2200);
+
+// ===== NAV =====
+function goPage(p) {
+  document.querySelectorAll('.page').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('page-' + p).classList.add('active');
+  var nav = document.getElementById('nav-' + p);
+  if (nav) nav.classList.add('active');
+  if (p === 'home') refresh();
+  if (p === 'dashboard') { renderDash(); renderProgress(); }
+}
+
+function goSignal() { goPage('signal'); }
+function goSignalQuartier(q) { goPage('signal'); document.getElementById('quartier').value = q; }
+
+// ===== ROLE =====
+function showRoleOverlay() { document.getElementById('roleOverlay').classList.add('show'); }
+
+function setRole(r) {
+  role = r;
+  localStorage.setItem('seniya_role', r);
+  document.querySelectorAll('.role-opt').forEach(function(el) { el.classList.remove('sel'); });
+  document.getElementById(r === 'citoyen' ? 'roleCitoyen' : 'roleCoord').classList.add('sel');
+  applyRole(r);
+  setTimeout(function() { document.getElementById('roleOverlay').classList.remove('show'); }, 300);
+}
+
+function applyRole(r) {
+  var dashNav = document.getElementById('nav-dashboard');
+  var roleBtn = document.getElementById('roleBtn');
+  if (r === 'coordinateur') {
+    dashNav.style.display = 'flex';
+    roleBtn.textContent = '👷 Coordinateur';
+  } else {
+    dashNav.style.display = 'none';
+    roleBtn.textContent = '👤 Citoyen';
+  }
+  updateBadge();
+}
+
+function updateBadge() {
+  var badge = document.getElementById('navBadge');
+  var nouveaux = DB.filter(function(s) { return s.statut === 'nouveau'; }).length;
+  if (role === 'coordinateur' && nouveaux > 0) {
+    badge.style.display = 'block';
+    badge.textContent = nouveaux;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ===== FORM =====
+function selType(t, el) {
+  selTypeVal = t;
+  document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('sel'); });
+  el.classList.add('sel');
+  updateSteps();
+}
+
+function selUrgence(u, el) {
+  selUrgenceVal = u;
+  document.getElementById('urgNormal').classList.remove('sel-normal', 'sel-urgent');
+  document.getElementById('urgUrgent').classList.remove('sel-normal', 'sel-urgent');
+  el.classList.add(u === 'urgent' ? 'sel-urgent' : 'sel-normal');
+}
+
+function updateSteps() {
+  var s1 = document.getElementById('step1');
+  var s2 = document.getElementById('step2');
+  if (selTypeVal) { s1.classList.remove('active'); s1.classList.add('done'); s2.classList.add('active'); }
+}
+
+function getGPS() {
+  var btn = document.getElementById('gpsBtn');
+  btn.textContent = '⏳ Localisation...'; btn.disabled = true;
+  if (!navigator.geolocation) { btn.textContent = '❌ GPS non disponible'; btn.disabled = false; return; }
+  navigator.geolocation.getCurrentPosition(
+    function(p) {
+      gpsLat = p.coords.latitude; gpsLng = p.coords.longitude;
+      btn.textContent = '✅ Position détectée'; btn.classList.add('located'); btn.disabled = false;
+      var r = document.getElementById('gpsResult');
+      r.style.display = 'block';
+      r.textContent = '📍 ' + gpsLat.toFixed(5) + ', ' + gpsLng.toFixed(5);
+    },
+    function() { btn.textContent = '❌ GPS indisponible'; btn.disabled = false; },
+    { timeout: 10000 }
+  );
+}
+
+function previewImg(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var prev = document.getElementById('photoPreview');
+      prev.src = e.target.result; prev.style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function submitSignal() {
+  var quartier = document.getElementById('quartier').value;
+  var desc = document.getElementById('desc').value;
+  if (!selTypeVal) { alert('⚠️ Sélectionnez le type de problème.'); return; }
+  if (!quartier) { alert('⚠️ Sélectionnez le quartier.'); return; }
+  if (!desc.trim()) { alert('⚠️ Ajoutez une description.'); return; }
+
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Envoi...';
+
+  var ref = 'SEN-' + String(Date.now()).slice(-5);
+  var signal = {
+    id: Date.now(), ref: ref,
+    type: selTypeVal, typeLabel: TYPES[selTypeVal],
+    quartier: quartier, repere: document.getElementById('repere').value,
+    desc: desc, urgence: selUrgenceVal,
+    nom: document.getElementById('nomCitoyen').value || 'Anonyme',
+    tel: document.getElementById('telCitoyen').value,
+    lat: gpsLat, lng: gpsLng,
+    statut: 'nouveau',
+    date: new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    ts: Date.now()
+  };
+
+  lastSignal = signal;
+
+  // Save to Supabase
+  var supaData = {
+    ref: ref,
+    type: signal.type,
+    type_label: signal.typeLabel,
+    quartier: signal.quartier,
+    repere: signal.repere || null,
+    description: signal.desc,
+    urgence: signal.urgence,
+    nom: signal.nom,
+    tel: signal.tel || null,
+    statut: "nouveau",
+    lat: signal.lat || null,
+    lng: signal.lng || null
+  };
+
+  supabase_insert(supaData, function(err, data) {
+    if (err) {
+      console.error("Supabase error:", err);
+      // Fallback to localStorage
+      DB.unshift(signal);
+      localStorage.setItem('seniya_v2', JSON.stringify(DB));
+    } else {
+      // Reload from Supabase
+      loadFromSupabase();
+    }
+    btn.disabled = false; btn.innerHTML = '<span>📢</span> Envoyer le signalement';
+    document.getElementById('modalRef').textContent = ref;
+    document.getElementById('successOverlay').classList.add('show');
+    resetForm();
+  });
+}
+
+function resetForm() {
+  selTypeVal = ''; selUrgenceVal = 'normal'; gpsLat = null; gpsLng = null;
+  document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('sel'); });
+  document.getElementById('quartier').value = '';
+  document.getElementById('repere').value = '';
+  document.getElementById('desc').value = '';
+  document.getElementById('nomCitoyen').value = '';
+  document.getElementById('telCitoyen').value = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('gpsBtn').textContent = '📡 Détecter ma position GPS';
+  document.getElementById('gpsBtn').classList.remove('located');
+  document.getElementById('gpsBtn').disabled = false;
+  document.getElementById('gpsResult').style.display = 'none';
+  document.getElementById('urgNormal').classList.remove('sel-normal','sel-urgent');
+  document.getElementById('urgUrgent').classList.remove('sel-normal','sel-urgent');
+  ['step1','step2','step3','step4'].forEach(function(s,i) {
+    var el = document.getElementById(s);
+    el.classList.remove('done','active');
+    if (i === 0) el.classList.add('active');
+  });
+}
+
+function closeSuccess() {
+  document.getElementById('successOverlay').classList.remove('show');
+  goPage('home');
+}
+
+function notifyWASuccess() {
+  if (!lastSignal) return;
+  var s = lastSignal;
+  var waText = 'SENIYA - Nouveau signalement' + ' | Ref: ' + s.ref + ' | ' + s.quartier + (s.repere ? ' | ' + s.repere : '') + ' | ' + s.typeLabel + (s.urgence === 'urgent' ? ' | URGENT' : '') + ' | ' + s.desc + ' | ' + s.nom + (s.tel ? ' | Tel: ' + s.tel : '') + ' | ' + s.date + ' | Merci de traiter ce signalement.';
+  var msg = encodeURIComponent(waText);
+  window.open('https://wa.me/' + COORD_WA + '?text=' + msg, '_blank');
+}
+
+// ===== REFRESH =====
+function refresh() {
+  var total = DB.length;
+  var encours = DB.filter(function(s) { return s.statut === 'encours'; }).length;
+  var resolu = DB.filter(function(s) { return s.statut === 'resolu'; }).length;
+
+  setText('kpiTotal', total);
+  setText('kpiEncours', encours);
+  setText('kpiResolu', resolu);
+
+  var nongo = DB.filter(function(s) { return s.quartier === 'Nongo'; }).length;
+  var kiroti = DB.filter(function(s) { return s.quartier === 'Kiroti'; }).length;
+  var lamb = DB.filter(function(s) { return s.quartier === 'Lambanyi Centre'; }).length;
+  setText('qNongo', nongo + ' signalement' + (nongo !== 1 ? 's' : ''));
+  setText('qKiroti', kiroti + ' signalement' + (kiroti !== 1 ? 's' : ''));
+  setText('qLambanyi', lamb + ' signalement' + (lamb !== 1 ? 's' : ''));
+
+  renderRecent();
+  updateBadge();
+}
+
+function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+
+function renderRecent() {
+  var list = document.getElementById('recentList');
+  if (DB.length === 0) {
+    list.innerHTML = "";
+    var _e = document.createElement("div");
+    _e.className = "empty";
+    _e.innerHTML = "<div style='font-size:48px'>&#128203;</div><div>Aucun signalement.</div>";
+    list.appendChild(_e);
+    return;
+  }
+  list.innerHTML = DB.slice(0, 6).map(function(s) {
+    var urgStr = s.urgence === 'urgent' ? ' &#x1F6A8;' : '';
+    return '<div class="signal-card ' + s.statut + '">' +
+      '<div class="signal-card-emoji">' + s.typeLabel.split(' ')[0] + '</div>' +
+      '<div class="signal-card-body">' +
+        '<div class="signal-card-title">' + s.typeLabel.substring(2) + urgStr + '</div>' +
+        '<div class="signal-card-meta">&#x1F4CD; ' + s.quartier + ' · ' + s.date + '</div>' +
+      '</div>' +
+      '<span class="badge badge-' + s.statut + '">' + statutLabel(s.statut) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function statutLabel(s) { return s === 'nouveau' ? 'Nouveau' : s === 'encours' ? 'En cours' : 'Résolu'; }
+
+// ===== DASHBOARD =====
+function renderDash() {
+  var total = DB.length;
+  var nouveau = DB.filter(function(s){return s.statut==='nouveau';}).length;
+  var encours = DB.filter(function(s){return s.statut==='encours';}).length;
+  var resolu = DB.filter(function(s){return s.statut==='resolu';}).length;
+  setText('dTotal', total); setText('dNouveau', nouveau);
+  setText('dEncours', encours); setText('dResolu', resolu);
+
+  var filtered = DB;
+  if (curFilter === 'urgent') {
+    filtered = DB.filter(function(s){return s.urgence==='urgent';});
+  } else if (curFilter === 'nouveau' || curFilter === 'encours' || curFilter === 'resolu') {
+    filtered = DB.filter(function(s){return s.statut===curFilter;});
+  } else if (curFilter !== 'tous') {
+    filtered = DB.filter(function(s){return s.quartier===curFilter;});
+  }
+
+  var list = document.getElementById('dashList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F4CB;</div><div class="empty-text">Aucun signalement dans cette cat&eacute;gorie.</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var s = filtered[i];
+    var urgTag = s.urgence === 'urgent' ? ' <span style="color:var(--red);font-size:12px">&#x1F6A8; URGENT</span>' : '';
+    var statutTxt = s.statut === 'nouveau' ? 'Nouveau' : s.statut === 'encours' ? 'En cours' : 'Résolu';
+    var repereStr = s.repere ? ' · ' + s.repere : '';
+    var telStr = s.tel ? ' · &#x1F4DE; ' + s.tel : '';
+    var btnEncours = s.statut === 'nouveau' ? '<button class="dash-btn btn-encours" data-id="' + s.id + '" data-statut="encours" onclick="handleStatut(this)">&#x1F504; En cours</button>' : '';
+    var btnResolu = s.statut !== 'resolu' ? '<button class="dash-btn btn-resolu" data-id="' + s.id + '" data-statut="resolu" onclick="handleStatut(this)">&#x2705; Résolu</button>' : '';
+    var btnWA = '<button class="dash-btn btn-wa" data-id="' + s.id + '" onclick="handleWA(this)">&#x1F4AC; WhatsApp</button>';
+
+    html += '<div class="dash-signal">';
+    html += '<div class="dash-signal-hdr">';
+    html += '<div class="dash-signal-type">' + s.typeLabel + urgTag + '</div>';
+    html += '<span class="badge badge-' + s.statut + '">' + statutTxt + '</span>';
+    html += '</div>';
+    html += '<div class="dash-signal-meta">&#x1F4CD; ' + s.quartier + repereStr + ' · ' + s.date + '<br>&#x1F464; ' + s.nom + telStr + ' · &#x1F516; ' + s.ref + '</div>';
+    html += '<div class="dash-signal-desc">' + s.desc + '</div>';
+    html += '<div class="dash-actions">' + btnEncours + btnResolu + btnWA + '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function handleStatut(btn) {
+  var id = parseInt(btn.getAttribute('data-id'));
+  var statut = btn.getAttribute('data-statut');
+  changeStatut(id, statut);
+}
+
+function handleWA(btn) {
+  var id = parseInt(btn.getAttribute('data-id'));
+  sendWA(id);
+}
+
+function renderProgress() {
+  var quartiers = ['Nongo','Kiroti','Lambanyi Centre'];
+  var total = Math.max(DB.length, 1);
+  var colors = ['#1a6b3c','#c8a84b','#1565c0'];
+  var html = quartiers.map(function(q, i) {
+    var count = DB.filter(function(s){return s.quartier===q;}).length;
+    var pct = Math.round((count/total)*100);
+    return '<div class="progress-item">' +
+      '<div class="progress-hdr"><span class="progress-label">'+q+'</span><span class="progress-val">'+count+' signalement'+(count!==1?'s':'')+'</span></div>' +
+      '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;background:'+colors[i]+'"></div></div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('progressBars').innerHTML = html;
+}
+
+function setFilter(f, el) {
+  curFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  renderDash();
+}
+
+function changeStatut(id, s) {
+  // Update in Supabase
+  supabase_update(id, {statut: s}, function(err) {
+    if (err) {
+      console.error("Update error:", err);
+      // Fallback localStorage
+      var idx = -1;
+      for (var i = 0; i < DB.length; i++) { if (DB[i].id === id) { idx = i; break; } }
+      if (idx !== -1) { DB[idx].statut = s; localStorage.setItem('seniya_v2', JSON.stringify(DB)); }
+    } else {
+      loadFromSupabase();
+    }
+    renderDash(); renderProgress(); refresh();
+    if (lMap) { lMap.remove(); lMap = null; mapReady = false; }
+  });
+}
+
+function sendWA(id) {
+  var s = DB.find(function(x){return x.id===id;});
+  if (!s) return;
+  var waText2 = 'SENIYA - Signalement ' + s.ref + ' | ' + s.quartier + ' | ' + s.typeLabel + (s.urgence === 'urgent' ? ' | URGENT' : '') + ' | ' + s.desc + ' | Statut: ' + statutLabel(s.statut) + ' | ' + s.date;
+  var msg = encodeURIComponent(waText2);
+  window.open('https://wa.me/'+COORD_WA+'?text='+msg, '_blank');
+}
+
+// ===== CARTE =====
+function initMap() {
+  if (mapReady) return;
+  if (typeof L === 'undefined') {
+    document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;padding:20px;text-align:center;color:var(--text3);"><div style="font-size:48px">🗺️</div><div>Connexion Internet requise pour afficher la carte.</div></div>';
+    return;
+  }
+  mapReady = true;
+  setTimeout(function() {
+    lMap = L.map('map', {zoomControl: true}).setView([9.6412, -13.5784], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(lMap);
+
+    // Points de collecte
+    var pts = [
+      [9.6450,-13.5820,'Point de collecte Nongo 1'],
+      [9.6430,-13.5760,'Point de collecte Nongo 2'],
+      [9.6390,-13.5790,'Point de collecte Kiroti'],
+      [9.6370,-13.5750,'Point de collecte Lambanyi Centre'],
+      [9.6410,-13.5830,'Dépôt principal Lambanyi'],
+    ];
+    pts.forEach(function(p) {
+      L.circleMarker([p[0],p[1]], {radius:10,fillColor:'#1565c0',color:'#fff',weight:2,fillOpacity:0.9})
+        .addTo(lMap).bindPopup('<b>🚛 '+p[2]+'</b>');
+    });
+
+    // Zones
+    var zones = [
+      {name:'Nongo',coords:[[9.648,-13.587],[9.648,-13.572],[9.640,-13.572],[9.640,-13.587]],color:'#1a6b3c'},
+      {name:'Kiroti',coords:[[9.640,-13.582],[9.640,-13.570],[9.634,-13.570],[9.634,-13.582]],color:'#c8a84b'},
+      {name:'Lambanyi Centre',coords:[[9.634,-13.580],[9.634,-13.568],[9.628,-13.568],[9.628,-13.580]],color:'#1565c0'},
+    ];
+    zones.forEach(function(z) {
+      L.polygon(z.coords, {color:z.color,fillColor:z.color,fillOpacity:0.07,weight:2,dashArray:'6,4'})
+        .addTo(lMap).bindPopup('<b>'+z.name+'</b>');
+    });
+
+    // Signalements géolocalisés
+    var cols = {nouveau:'#d32f2f',encours:'#e65100',resolu:'#1a6b3c'};
+    DB.forEach(function(s) {
+      if (s.lat && s.lng) {
+        L.circleMarker([s.lat,s.lng],{radius:12,fillColor:cols[s.statut],color:'#fff',weight:2,fillOpacity:0.9})
+          .addTo(lMap).bindPopup('<b>'+s.typeLabel+'</b><br>📍 '+s.quartier+'<br>'+s.desc+'<br><small>'+s.date+'</small>');
+      }
+    });
+  }, 200);
+}
+</script>
+</body>
+</html>
