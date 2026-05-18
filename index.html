@@ -933,26 +933,45 @@ function getGPS() {
 function previewImg(input) {
   if (input.files && input.files[0]) {
     var file = input.files[0];
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    var img = new Image();
+    window._photoFile = file;
+    // Show thumbnail using object URL (no memory overhead)
     var url = URL.createObjectURL(file);
-    img.onload = function() {
-      // Resize to max 800px wide
-      var maxW = 800;
-      var ratio = Math.min(1, maxW / img.width);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      var resized = canvas.toDataURL('image/jpeg', 0.6);
-      var prev = document.getElementById('photoPreview');
-      prev.src = resized;
-      prev.style.display = 'block';
-      window._photoData = resized;
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    var prev = document.getElementById('photoPreview');
+    prev.src = url;
+    prev.style.display = 'block';
+    var zone = document.querySelector('.photo-zone');
+    if (zone) zone.style.display = 'none';
   }
+}
+
+function uploadPhoto(ref, callback) {
+  if (!window._photoFile) { callback(null); return; }
+  var file = window._photoFile;
+  var ext = file.name.split('.').pop() || 'jpg';
+  var path = 'signalements/' + ref + '.' + ext;
+  fetch(SUPABASE_URL + '/storage/v1/object/photos/' + path, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': file.type || 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: file
+  })
+  .then(function(r) {
+    if (r.ok) {
+      var photoUrl = SUPABASE_URL + '/storage/v1/object/public/photos/' + path;
+      callback(photoUrl);
+    } else {
+      console.log('Photo upload failed:', r.status);
+      callback(null);
+    }
+  })
+  .catch(function(e) {
+    console.log('Photo upload error:', e);
+    callback(null);
+  });
 }
 
 function submitSignal() {
@@ -981,7 +1000,8 @@ function submitSignal() {
 
   lastSignal = signal;
 
-  // Save to Supabase
+  // Upload photo first, then save signalement
+  uploadPhoto(ref, function(photoUrl) {
   var supaData = {
     ref: ref,
     type: signal.type,
@@ -994,21 +1014,16 @@ function submitSignal() {
     tel: signal.tel || null,
     statut: "nouveau",
     lat: signal.lat || null,
-    lng: signal.lng || null
+    lng: signal.lng || null,
+    photo_url: photoUrl || null
   };
-  // Store photo reference if available
-  if (window._photoData) {
-    signal.hasPhoto = true;
-  }
 
   supabase_insert(supaData, function(err, data) {
     if (err) {
       console.error("Supabase error:", err);
-      // Fallback to localStorage
       DB.unshift(signal);
       localStorage.setItem('seniya_v2', JSON.stringify(DB));
     } else {
-      // Reload from Supabase
       loadFromSupabase();
     }
     btn.disabled = false; btn.innerHTML = '<span>📢</span> Envoyer le signalement';
@@ -1016,6 +1031,7 @@ function submitSignal() {
     document.getElementById('successOverlay').classList.add('show');
     resetForm();
   });
+  }); // end uploadPhoto
 }
 
 function resetForm() {
@@ -1027,7 +1043,9 @@ function resetForm() {
   document.getElementById('nomCitoyen').value = '';
   document.getElementById('telCitoyen').value = '';
   document.getElementById('photoPreview').style.display = 'none';
-  window._photoData = null;
+  var zone = document.querySelector('.photo-zone');
+  if (zone) zone.style.display = 'block';
+  window._photoFile = null;
   document.getElementById('gpsBtn').textContent = '📡 Détecter ma position GPS';
   document.getElementById('gpsBtn').classList.remove('located');
   document.getElementById('gpsBtn').disabled = false;
