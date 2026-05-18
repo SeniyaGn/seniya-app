@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SÈNIYA — Pilote Lambanyi</title>
+<title>SÈNIYA — Lambanyi</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -22,7 +22,6 @@
   --red: #dc2626;
   --orange: #ea580c;
   --blue: #2563eb;
-  --white: #ffffff;
   --bg: #f8fafc;
   --card: #ffffff;
   --border: #e2e8f0;
@@ -31,10 +30,32 @@
   --text3: #94a3b8;
   --radius: 20px;
   --radius-sm: 12px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 90px; }
+body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 90px; overflow-x: hidden; }
+
+/* ===== SPLASH ===== */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, var(--g1) 0%, #061a0e 50%, var(--g2) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+#splash.hide { opacity: 0; transform: scale(1.05); pointer-events: none; }
+.splash-logo { width: 88px; height: 88px; object-fit: contain; margin-bottom: 22px; filter: drop-shadow(0 0 24px rgba(200,168,75,0.4)); }
+.splash-title { font-family: "Syne", sans-serif; font-size: 44px; font-weight: 800; color: #fff; letter-spacing: 6px; }
+.splash-title span { color: var(--gold); }
+.splash-sub { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; margin-bottom: 52px; }
+.splash-bar { width: 180px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+.splash-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 10px; animation: splashLoad 2.2s ease forwards; }
+@keyframes splashLoad { from { width: 0; } to { width: 100%; } }
+
+/* ===== APP ===== */
+#app { display: none; }
+#app.ready { display: block; }
 
 /* ===== TOPBAR ===== */
 .topbar {
@@ -51,8 +72,9 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .topbar-role-btn {
   background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
   padding: 8px 14px; border-radius: 30px; font-size: 12px; font-weight: 700; color: #fff;
-  cursor: pointer;
+  cursor: pointer; transition: background 0.2s;
 }
+.topbar-role-btn:hover { background: rgba(255,255,255,0.18); }
 
 /* ===== BOTTOM NAV ===== */
 .bottom-nav {
@@ -61,48 +83,61 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
   padding-bottom: env(safe-area-inset-bottom);
 }
 .nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 4px 10px; cursor: pointer;
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 12px 4px 10px; cursor: pointer; transition: background 0.2s; position: relative;
 }
 .nav-item .nav-icon { font-size: 24px; margin-bottom: 2px; }
 .nav-item .nav-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; }
 .nav-item.active .nav-label { color: var(--g1); }
 .nav-item.active { background: var(--g5); }
-.nav-badge { position: absolute; top: 6px; right: calc(50% - 22px); background: var(--red); color: #fff; border-radius: 10px; font-size: 10px; font-weight: 800; padding: 1px 6px; }
+.nav-badge {
+  position: absolute; top: 6px; right: calc(50% - 22px);
+  background: var(--red); color: #fff; border-radius: 10px;
+  font-size: 10px; font-weight: 800; padding: 1px 6px;
+}
 
 /* ===== PAGES ===== */
 .page { display: none; }
 .page.active { display: block; }
 
-/* ===== CITIZEN REPORT INTUITIVE FLOW ===== */
+/* ===== CITOYEN PAGE ===== */
 .hero-cta-box {
-  background: linear-gradient(135deg, var(--g1), var(--g2)); padding: 24px 16px; text-align: center; color: white;
+  background: linear-gradient(135deg, var(--g1), var(--g2));
+  padding: 28px 16px 24px; text-align: center; color: white;
 }
 .hero-cta-box h1 { font-family: "Syne", sans-serif; font-size: 24px; margin-bottom: 6px; }
-.hero-cta-box p { font-size: 14px; color: var(--gold2); opacity: 0.9; margin-bottom: 20px; }
+.hero-cta-box p { font-size: 14px; color: var(--gold2); opacity: 0.9; margin-bottom: 22px; }
 
 .action-trigger-btn {
   width: 100%; background: var(--gold); color: var(--g1); border: none; padding: 20px;
   border-radius: var(--radius); font-family: "Syne", sans-serif; font-size: 18px; font-weight: 800;
-  box-shadow: 0 8px 24px rgba(200,168,75,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+  box-shadow: 0 8px 24px rgba(200,168,75,0.4); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
+.action-trigger-btn:active { transform: scale(0.97); }
 
 .flow-container { padding: 16px; }
-.section-title { font-family: "Syne", sans-serif; font-size: 16px; color: var(--g1); margin: 16px 0 12px; padding-left: 4px; }
+.section-title {
+  font-family: "Syne", sans-serif; font-size: 15px; font-weight: 800;
+  color: var(--g1); margin: 18px 0 12px; padding-left: 2px;
+}
 
-/* Visual Category Grid */
+/* Category Grid */
 .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
 .category-card {
   background: white; border: 3px solid var(--border); padding: 20px 12px; border-radius: var(--radius);
-  text-align: center; cursor: pointer; transition: all 0.2s;
+  text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);
 }
-.category-card .cat-emoji { font-size: 40px; display: block; margin-bottom: 8px; }
+.category-card:active { transform: scale(0.97); }
+.category-card .cat-emoji { font-size: 38px; display: block; margin-bottom: 8px; }
 .category-card .cat-title { font-size: 13px; font-weight: 700; color: var(--text); }
-.category-card.selected { border-color: var(--g4); background: var(--g5); }
+.category-card.selected { border-color: var(--g4); background: var(--g5); box-shadow: 0 0 0 2px var(--g3); }
 
-/* Camera Capture Box */
+/* Camera Box */
 .camera-box {
   background: white; border: 3px dashed var(--text3); border-radius: var(--radius);
-  padding: 30px 16px; text-align: center; cursor: pointer; margin-bottom: 16px;
+  padding: 30px 16px; text-align: center; cursor: pointer; margin-bottom: 16px; transition: all 0.2s;
 }
 .camera-box.has-file { border-style: solid; border-color: var(--g4); background: var(--g5); }
 .camera-icon { font-size: 44px; display: block; margin-bottom: 6px; }
@@ -112,27 +147,29 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 /* Inputs */
 .input-minimal {
   width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 14px; font-family: inherit; margin-bottom: 12px; background: white; outline: none;
+  font-size: 14px; font-family: inherit; margin-bottom: 12px; background: white; outline: none; color: var(--text);
 }
 .input-minimal:focus { border-color: var(--g3); }
 
 .btn-big-submit {
   width: 100%; padding: 18px; background: var(--g2); color: white; border: none;
   border-radius: var(--radius); font-family: "Syne", sans-serif; font-size: 18px; font-weight: 800;
-  cursor: pointer; box-shadow: 0 6px 20px rgba(20,83,45,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; box-shadow: 0 6px 20px rgba(20,83,45,0.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
 }
 .btn-big-submit:disabled { background: var(--text3); cursor: not-allowed; box-shadow: none; }
+.btn-big-submit:not(:disabled):active { transform: scale(0.98); }
 
-/* ===== RECENT SIGNALS ===== */
+/* Recent cards */
 .recent-card {
   background: white; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;
-  border: 1px solid var(--border); display: flex; gap: 12px; align-items: center;
+  border: 1px solid var(--border); display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow-sm);
 }
-.recent-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #eee; }
+.recent-img { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; background: #eee; flex-shrink: 0; }
 .recent-info { flex: 1; min-width: 0; }
 .recent-type { font-size: 13px; font-weight: 700; }
-.recent-loc { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.status-badge { padding: 4px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.recent-loc { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; flex-shrink: 0; }
 .status-nouveau { background: #fee2e2; color: var(--red); }
 .status-encours { background: #ffedd5; color: var(--orange); }
 .status-resolu { background: var(--g5); color: var(--g3); }
@@ -140,215 +177,457 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 /* ===== MAP ===== */
 #map { height: calc(100vh - 145px); width: 100%; }
 
-/* ===== COORDINATOR DASHBOARD ===== */
+/* ===== DASHBOARD ===== */
 .dash-container { padding: 12px; }
 .dash-summary {
-  background: var(--g1); color: white; padding: 16px; border-radius: var(--radius); margin-bottom: 12px;
+  background: var(--g1); color: white; padding: 18px 16px; border-radius: var(--radius); margin-bottom: 14px;
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;
 }
-.dash-count-box h3 { font-family: "Syne", sans-serif; font-size: 24px; color: var(--gold2); }
-.dash-count-box p { font-size: 10px; opacity: 0.8; text-transform: uppercase; margin-top: 2px; }
+.dash-count-box h3 { font-family: "Syne", sans-serif; font-size: 26px; color: var(--gold2); }
+.dash-count-box p { font-size: 10px; opacity: 0.75; text-transform: uppercase; margin-top: 3px; letter-spacing: 0.5px; }
 
+/* Filter chips */
+.filter-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; }
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 7px 14px; border-radius: 20px; white-space: nowrap;
+  font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+  border: 2px solid var(--border); background: white; color: var(--text2); transition: all 0.2s;
+}
+.filter-chip.active { background: var(--g2); color: white; border-color: var(--g2); }
+
+/* Ticket cards */
 .ticket-card {
   background: white; border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
   border: 1px solid var(--border); box-shadow: var(--shadow-sm);
 }
-.ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.ticket-title { font-size: 14px; font-weight: 700; }
-.ticket-meta { font-size: 12px; color: var(--text3); margin-bottom: 8px; }
-.ticket-desc { font-size: 13px; color: var(--text2); background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+.ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.ticket-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.ticket-ref { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.ticket-meta { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.ticket-desc { font-size: 13px; color: var(--text2); background: var(--bg); padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; line-height: 1.5; }
 
-/* Before / After Flexbox */
+/* Before/After */
 .proof-container { display: flex; gap: 8px; margin-bottom: 12px; }
 .proof-box { flex: 1; position: relative; background: var(--bg); border-radius: 8px; aspect-ratio: 4/3; overflow: hidden; border: 1px solid var(--border); }
 .proof-box img { width: 100%; height: 100%; object-fit: cover; }
-.proof-tag { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.6); color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
+.proof-tag { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.65); color: white; font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+.proof-empty { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 11px; color: var(--text3); text-align: center; padding: 6px; }
 
-.ticket-actions { display: flex; gap: 8px; }
-.btn-action { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; text-transform: uppercase; }
+.ticket-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-action { flex: 1; min-width: 80px; padding: 10px 8px; border: none; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; text-align: center; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; }
+.btn-action:active { transform: scale(0.96); }
 .btn-action.work { background: #ffedd5; color: var(--orange); }
-.btn-action.done { background: var(--g5); color: var(--g2); border: 1px solid var(--g3); }
-.btn-action.wa { background: #e8fdf0; color: #16a34a; }
+.btn-action.done { background: var(--g5); color: var(--g2); }
+.btn-action.wa { background: #dcfce7; color: #16a34a; }
 
-/* ===== OVERLAYS & MODALS ===== */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+/* ===== SUCCESS MODAL ===== */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
 .overlay.show { opacity: 1; pointer-events: all; }
-.modal { background: white; border-radius: var(--radius); padding: 24px; text-align: center; width: 100%; max-width: 320px; }
-.modal h2 { font-family: "Syne", sans-serif; font-size: 20px; margin-bottom: 8px; }
-.modal p { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
-.modal-btn-wa { width:100%; padding:14px; background:#25d366; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer; margin-bottom:8px; display:block; text-decoration:none; }
+.modal { background: white; border-radius: var(--radius); padding: 28px 24px; text-align: center; width: 100%; max-width: 320px; transform: scale(0.9) translateY(20px); transition: all 0.25s; }
+.overlay.show .modal { transform: scale(1) translateY(0); }
+.modal h2 { font-family: "Syne", sans-serif; font-size: 20px; margin-bottom: 8px; color: var(--text); }
+.modal p { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.6; }
+.modal-btn-wa { width:100%; padding:14px; background:#25d366; color:white; border:none; border-radius:10px; font-weight:800; cursor:pointer; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:14px; text-decoration:none; }
+.modal-btn-close { width:100%; padding:12px; border:2px solid var(--border); background:white; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px; color: var(--text2); }
 
-/* ===== PIN BOTTOM SHEET ===== */
-.sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-end; opacity:0; pointer-events:none; transition: opacity 0.2s; }
-.sheet-overlay.show { opacity: 1; pointer-events: all; }
-.sheet { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 24px 16px; transform: translateY(100%); transition: transform 0.3s; }
-.sheet-overlay.show .sheet { transform: translateY(0); }
+/* ===== PIN OVERLAY ===== */
+.pin-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  z-index: 2000; display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.pin-overlay.show { opacity: 1; pointer-events: all; }
+.pin-sheet {
+  background: white; width: 100%; border-radius: 24px 24px 0 0; padding: 28px 20px 36px;
+  transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.pin-overlay.show .pin-sheet { transform: translateY(0); }
+.pin-title { font-family: "Syne", sans-serif; font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.pin-sub { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+
+/* PIN dots */
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+.pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--g2); background: transparent; transition: background 0.2s; }
+.pin-dot.filled { background: var(--g2); }
+
+.pin-error { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 14px; display: none; }
+
+/* PIN keypad */
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 260px; margin: 0 auto 16px; }
+.pin-key {
+  padding: 18px; font-size: 22px; font-weight: 700; border: 1.5px solid var(--border);
+  border-radius: 14px; background: white; cursor: pointer; font-family: inherit;
+  transition: all 0.15s; color: var(--text); text-align: center;
+}
+.pin-key:active { background: var(--g5); border-color: var(--g2); transform: scale(0.94); }
+.pin-key.confirm { background: var(--g2); color: white; border-color: var(--g2); font-size: 18px; }
+.pin-key.confirm:active { background: var(--g1); }
+.pin-key.del { font-size: 18px; }
+.pin-cancel { width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px; background: white; font-size: 14px; color: var(--text3); font-weight: 700; cursor: pointer; font-family: inherit; }
+
+/* ===== GPS INDICATOR ===== */
+.gps-indicator {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; margin-bottom: 14px;
+  border: 1.5px solid var(--border); background: white;
+  transition: all 0.3s;
+}
+.gps-indicator.loading { border-color: var(--border); color: var(--text2); }
+.gps-indicator.success { border-color: var(--g4); background: var(--g5); color: var(--g2); }
+.gps-indicator.fallback { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+.gps-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.gps-indicator.loading .gps-dot { background: var(--text3); animation: gpsPulse 1s infinite; }
+.gps-indicator.success .gps-dot { background: var(--g4); }
+.gps-indicator.fallback .gps-dot { background: #f59e0b; }
+@keyframes gpsPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-left">
-    <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="topbar-logo-img" alt="SÈNIYA">
-    <div>
-      <div class="topbar-name">SÈN<span>I</span>YA</div>
-      <div class="topbar-commune">Lambanyi Pilot Area</div>
-    </div>
-  </div>
-  <button class="topbar-role-btn" onclick="toggleRole()" id="roleBtn">👤 Citoyen</button>
+<!-- SPLASH -->
+<div id="splash">
+  <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="splash-logo" alt="SÈNIYA">
+  <div class="splash-title">SÈN<span>I</span>YA</div>
+  <div class="splash-sub">Commune de Lambanyi · Conakry</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
 </div>
 
-<div class="page active" id="page-citoyen">
-  <div class="hero-cta-box">
-    <h1>Rendre Lambanyi Propre</h1>
-    <p>Signalez un dépôt d'ordures en moins de 15 secondes.</p>
-    <button class="action-trigger-btn" onclick="document.getElementById('fileCapture').click()">
-      📸 PRENDRE UNE PHOTO
-    </button>
-    <input type="file" id="fileCapture" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(this)">
+<!-- APP -->
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="topbar-logo-img" alt="SÈNIYA">
+      <div>
+        <div class="topbar-name">SÈN<span>I</span>YA</div>
+        <div class="topbar-commune">Lambanyi · Conakry 🇬🇳</div>
+      </div>
+    </div>
+    <button class="topbar-role-btn" onclick="toggleRole()" id="roleBtn">👤 Citoyen</button>
   </div>
 
-  <div class="flow-container">
-    <div id="reportingFlow" style="display:none;">
-      <div class="section-title">1. Photo sélectionnée</div>
-      <div class="camera-box has-file" onclick="document.getElementById('fileCapture').click()">
-        <img id="imgPreview" src="" alt="Preview" style="display:block;">
-        <span style="font-size:12px; color:var(--text2); display:block; margin-top:6px;">Tap pour changer de photo</span>
-      </div>
-
-      <div class="section-title">2. Choisissez la catégorie</div>
-      <div class="category-grid">
-        <div class="category-card" onclick="selectCategory('depot', this)"><span class="cat-emoji">🗑️</span><span class="cat-title">Dépôt Sauvage</span></div>
-        <div class="category-card" onclick="selectCategory('caniveau', this)"><span class="cat-emoji">🚿</span><span class="cat-title">Caniveau Bouché</span></div>
-        <div class="category-card" onclick="selectCategory('voirie', this)"><span class="cat-emoji">🛣️</span><span class="cat-title">Voirie / Route</span></div>
-        <div class="category-card" onclick="selectCategory('autre', this)"><span class="cat-emoji">⚠️</span><span class="cat-title">Autre Problème</span></div>
-      </div>
-
-      <div class="section-title">3. Précisions (Optionnel)</div>
-      <select class="input-minimal" id="fieldQuartier">
-        <option value="Lambanyi Centre">Lambanyi Centre</option>
-        <option value="Nongo">Nongo</option>
-        <option value="Kiroti">Kiroti</option>
-      </select>
-      <input type="text" class="input-minimal" id="fieldNote" placeholder="Point de repère (Ex: Face à la pharmacie...)">
-
-      <button class="btn-big-submit" id="submitBtn" onclick="submitReport()" disabled>
-        🚀 ENVOYER LE SIGNALEMENT
+  <!-- PAGE CITOYEN -->
+  <div class="page active" id="page-citoyen">
+    <div class="hero-cta-box">
+      <h1>Rendre Lambanyi Propre</h1>
+      <p>Signalez un problème en moins de 15 secondes.</p>
+      <button class="action-trigger-btn" onclick="document.getElementById('fileCapture').click()">
+        📸 PRENDRE UNE PHOTO
       </button>
+      <input type="file" id="fileCapture" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(this)">
     </div>
 
-    <div class="section-title">Signalements récents à Lambanyi</div>
-    <div id="recentCitizenList"></div>
+    <div class="flow-container">
+      <div id="reportingFlow" style="display:none;">
+        <div class="section-title">1. Photo sélectionnée</div>
+        <div class="camera-box has-file" onclick="document.getElementById('fileCapture').click()">
+          <img id="imgPreview" src="" alt="Preview" style="display:block;">
+          <span style="font-size:12px; color:var(--text2); display:block; margin-top:8px;">Appuyer pour changer de photo</span>
+        </div>
+
+        <div class="section-title">2. Choisissez la catégorie</div>
+        <div class="category-grid">
+          <div class="category-card" onclick="selectCategory('depot', this)"><span class="cat-emoji">🗑️</span><span class="cat-title">Dépôt Sauvage</span></div>
+          <div class="category-card" onclick="selectCategory('caniveau', this)"><span class="cat-emoji">🚿</span><span class="cat-title">Caniveau Bouché</span></div>
+          <div class="category-card" onclick="selectCategory('voirie', this)"><span class="cat-emoji">🛣️</span><span class="cat-title">Voirie / Route</span></div>
+          <div class="category-card" onclick="selectCategory('eau', this)"><span class="cat-emoji">💧</span><span class="cat-title">Eau Stagnante</span></div>
+          <div class="category-card" onclick="selectCategory('feu', this)"><span class="cat-emoji">🔥</span><span class="cat-title">Brûlage Sauvage</span></div>
+          <div class="category-card" onclick="selectCategory('autre', this)"><span class="cat-emoji">⚠️</span><span class="cat-title">Autre Problème</span></div>
+        </div>
+
+        <div class="section-title">3. Précisions (Optionnel)</div>
+        <select class="input-minimal" id="fieldQuartier">
+          <option value="Lambanyi Centre">Lambanyi Centre</option>
+          <option value="Nongo">Nongo</option>
+          <option value="Kiroti">Kiroti</option>
+        </select>
+        <input type="text" class="input-minimal" id="fieldNote" placeholder="Point de repère (Ex: Face à la pharmacie...)">
+
+        <!-- GPS Indicator -->
+        <div class="gps-indicator loading" id="gpsIndicator">
+          <div class="gps-dot"></div>
+          <span id="gpsText">📡 Localisation en cours...</span>
+        </div>
+
+        <button class="btn-big-submit" id="submitBtn" onclick="submitReport()" disabled>
+          🚀 ENVOYER LE SIGNALEMENT
+        </button>
+        <div style="height:12px;"></div>
+      </div>
+
+      <div class="section-title">Signalements récents à Lambanyi</div>
+      <div id="recentCitizenList"></div>
+    </div>
+  </div>
+
+  <!-- PAGE CARTE -->
+  <div class="page" id="page-map">
+    <div id="map"></div>
+  </div>
+
+  <!-- PAGE DASHBOARD -->
+  <div class="page" id="page-dashboard">
+    <div class="dash-container">
+      <div class="dash-summary">
+        <div class="dash-count-box"><h3 id="dTotal">0</h3><p>Total</p></div>
+        <div class="dash-count-box"><h3 id="dNouveau">0</h3><p>Nouveaux</p></div>
+        <div class="dash-count-box"><h3 id="dResolu">0</h3><p>Résolus</p></div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="setFilter('tous', this)">Tous</div>
+        <div class="filter-chip" onclick="setFilter('nouveau', this)">🔴 Nouveaux</div>
+        <div class="filter-chip" onclick="setFilter('encours', this)">🟠 En cours</div>
+        <div class="filter-chip" onclick="setFilter('resolu', this)">✅ Résolus</div>
+        <div class="filter-chip" onclick="setFilter('Nongo', this)">Nongo</div>
+        <div class="filter-chip" onclick="setFilter('Kiroti', this)">Kiroti</div>
+        <div class="filter-chip" onclick="setFilter('Lambanyi Centre', this)">Lambanyi Centre</div>
+      </div>
+
+      <div id="coordinatorList"></div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav" style="display:none;">
+  <div class="nav-item active" onclick="switchTab('citoyen', this)">
+    <div class="nav-icon">📢</div><div class="nav-label">Signaler</div>
+  </div>
+  <div class="nav-item" onclick="switchTab('map', this); loadMap()">
+    <div class="nav-icon">🗺️</div><div class="nav-label">Carte</div>
+  </div>
+  <div class="nav-item" id="tabDash" onclick="switchTab('dashboard', this)" style="display:none; position:relative;">
+    <div class="nav-icon">📊</div><div class="nav-label">Gestion</div>
+    <div class="nav-badge" id="badgeCount" style="display:none;">0</div>
   </div>
 </div>
 
-<div class="page" id="page-map">
-  <div id="map"></div>
-</div>
-
-<div class="page" id="page-dashboard">
-  <div class="dash-container">
-    <div class="dash-summary">
-      <div class="dash-count-box"><h3 id="dTotal">0</h3><p>Total</p></div>
-      <div class="dash-count-box"><h3 id="dNouveau">0</h3><p>Nouveau</p></div>
-      <div class="dash-count-box"><h3 id="dResolu">0</h3><p>Résolus</p></div>
-    </div>
-    
-    <div class="section-title">Suivi des opérations de terrain</div>
-    <div id="coordinatorList"></div>
-  </div>
-</div>
-
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="switchTab('citoyen', this)"><div class="nav-icon">📢</div><div class="nav-label">Signaler</div></div>
-  <div class="nav-item" onclick="switchTab('map', this); loadMap()"><div class="nav-icon">🗺️</div><div class="nav-label">Carte</div></div>
-  <div class="nav-item" id="tabDash" onclick="switchTab('dashboard', this)" style="display:none;"><div class="nav-icon">📊</div><div class="nav-label">Gestion</div><div class="nav-badge" id="badgeCount" style="display:none;">0</div></div>
-</div>
-
+<!-- After photo input (hidden) -->
 <input type="file" id="fileAfterCapture" accept="image/*" capture="environment" style="display:none">
 
+<!-- SUCCESS MODAL -->
 <div class="overlay" id="successOverlay">
   <div class="modal">
-    <div style="font-size:48px; margin-bottom:10px;">🎉</div>
+    <div style="font-size:52px; margin-bottom:12px;">🎉</div>
     <h2>Merci pour Lambanyi !</h2>
-    <p>Votre signalement a été transmis à l'équipe municipale. Ensemble, gardons notre commune propre.</p>
-    <a href="#" class="modal-btn-wa" id="waShareBtn" target="_blank">📲 Alerter le groupe WhatsApp</a>
-    <button onclick="closeSuccessModal()" style="width:100%; padding:12px; border:2px solid var(--border); background:white; border-radius:8px; font-weight:700; cursor:pointer;">Fermer</button>
+    <p>Votre signalement a été transmis à l'équipe municipale. Ensemble, gardons notre commune propre. 🇬🇳</p>
+    <a href="#" class="modal-btn-wa" id="waShareBtn" target="_blank">📲 Notifier le Coordinateur WhatsApp</a>
+    <button onclick="closeSuccessModal()" class="modal-btn-close">Fermer</button>
   </div>
 </div>
 
-<div class="sheet-overlay" id="pinOverlay">
-  <div class="sheet">
-    <h3 style="font-family:'Syne'; margin-bottom:6px;">Accès restreint</h3>
-    <p style="font-size:13px; color:var(--text2); margin-bottom:14px;">Entrez le code PIN Agent pour accéder au gestionnaire.</p>
-    <input type="password" id="pinInput" class="input-minimal" placeholder="Code PIN à 4 chiffres" pattern="[0-8]*" inputmode="numeric" style="text-align:center; font-size:24px; letter-spacing:8px;">
-    <button onclick="verifyPin()" class="btn-big-submit">VALIDER</button>
-    <button onclick="closePinSheet()" style="width:100%; margin-top:8px; padding:12px; background:white; border:none; color:var(--text3); font-weight:700; cursor:pointer;">Annuler</button>
+<!-- PIN OVERLAY -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-sheet">
+    <div class="pin-title">🔐 Accès Coordinateur</div>
+    <div class="pin-sub">Entrez le code PIN à 4 chiffres</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+    </div>
+    <div class="pin-error" id="pinError">❌ Code incorrect. Réessayez.</div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key confirm" onclick="pinSubmit()">✓</button>
+    </div>
+    <button class="pin-cancel" onclick="closePinOverlay()">Annuler</button>
   </div>
 </div>
 
 <script>
+// ===== CONFIG =====
 var SUPABASE_URL = "https://cfuaxymixutyezprqown.supabase.co";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdWF4eW1peHV0eWV6cHJxb3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYzMjQsImV4cCI6MjA5NDYxMjMyNH0.bQsmL6uSU3xuoiyCCRdLhp_w23brkVMIfMjw-ELjEsw";
+var COORD_PIN = "2601";
+var COORD_WA = "224613508207";
 
+// ===== STATE =====
 var DB = [];
-var role = "citoyen";
+var role = localStorage.getItem("seniya_role") || "citoyen";
 var selectedCategoryVal = "";
 var activeReportIdForProof = null;
 var lMap = null;
-
-// GPS Auto Tracking
+var currentFilter = "tous";
+var pinValue = "";
 var currentLat = null, currentLng = null;
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(function(p) {
-    currentLat = p.coords.latitude;
-    currentLng = p.coords.longitude;
-  }, null, { enableHighAccuracy: true });
+
+// GPS auto avec timeout 10s
+var gpsReady = false;
+function initGPS() {
+  if (!navigator.geolocation) {
+    setGPSFallback();
+    return;
+  }
+  var timeout = setTimeout(function() {
+    if (!gpsReady) setGPSFallback();
+  }, 10000);
+
+  navigator.geolocation.getCurrentPosition(
+    function(p) {
+      clearTimeout(timeout);
+      gpsReady = true;
+      currentLat = p.coords.latitude;
+      currentLng = p.coords.longitude;
+      var ind = document.getElementById("gpsIndicator");
+      var txt = document.getElementById("gpsText");
+      if (ind) { ind.className = "gps-indicator success"; }
+      if (txt) { txt.textContent = "✅ Position GPS détectée (" + currentLat.toFixed(4) + ", " + currentLng.toFixed(4) + ")"; }
+    },
+    function() {
+      clearTimeout(timeout);
+      setGPSFallback();
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
+function setGPSFallback() {
+  gpsReady = false;
+  var ind = document.getElementById("gpsIndicator");
+  var txt = document.getElementById("gpsText");
+  if (ind) { ind.className = "gps-indicator fallback"; }
+  if (txt) { txt.textContent = "⚠️ Position approximative — quartier sélectionné utilisé"; }
+}
+
+initGPS();
+
+// ===== SPLASH =====
+window.addEventListener("load", function() {
+  setTimeout(function() {
+    document.getElementById("splash").classList.add("hide");
+    setTimeout(function() {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("app").classList.add("ready");
+      document.getElementById("bottomNav").style.display = "flex";
+      applyRole(role);
+      fetchSignals();
+    }, 600);
+  }, 2400);
+});
+
+// ===== ROLE =====
 function toggleRole() {
   if (role === "coordinateur") {
     role = "citoyen";
-    localStorage.setItem("role", "citoyen");
-    document.getElementById("roleBtn").textContent = "👤 Citoyen";
-    document.getElementById("tabDash").style.display = "none";
+    localStorage.setItem("seniya_role", "citoyen");
+    applyRole("citoyen");
     switchTab("citoyen", document.querySelectorAll(".nav-item")[0]);
   } else {
-    document.getElementById("pinOverlay").classList.add("show");
-    document.getElementById("pinInput").focus();
+    openPinOverlay();
   }
 }
 
-function verifyPin() {
-  if (document.getElementById("pinInput").value === "2601") {
-    role = "coordinateur";
-    localStorage.setItem("role", "coordinateur");
-    document.getElementById("roleBtn").textContent = "👷 Coordinateur";
-    document.getElementById("tabDash").style.display = "flex";
-    closePinSheet();
-    switchTab("dashboard", document.getElementById("tabDash"));
+function applyRole(r) {
+  var dashTab = document.getElementById("tabDash");
+  var roleBtn = document.getElementById("roleBtn");
+  if (r === "coordinateur") {
+    dashTab.style.display = "flex";
+    roleBtn.textContent = "👷 Coordinateur";
   } else {
-    alert("Code PIN invalide.");
+    dashTab.style.display = "none";
+    roleBtn.textContent = "👤 Citoyen";
   }
 }
 
-function closePinSheet() { document.getElementById("pinOverlay").classList.remove("show"); document.getElementById("pinInput").value=""; }
+// ===== PIN =====
+function openPinOverlay() {
+  pinValue = "";
+  updatePinDots();
+  document.getElementById("pinError").style.display = "none";
+  document.getElementById("pinOverlay").classList.add("show");
+}
 
+function closePinOverlay() {
+  document.getElementById("pinOverlay").classList.remove("show");
+  pinValue = "";
+  updatePinDots();
+}
+
+function pinKey(k) {
+  if (pinValue.length < 4) {
+    pinValue += k;
+    updatePinDots();
+    if (pinValue.length === 4) setTimeout(pinSubmit, 200);
+  }
+}
+
+function pinDel() {
+  pinValue = pinValue.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (var i = 1; i <= 4; i++) {
+    var dot = document.getElementById("pd" + i);
+    if (dot) dot.classList.toggle("filled", i <= pinValue.length);
+  }
+}
+
+function pinSubmit() {
+  if (pinValue === COORD_PIN) {
+    role = "coordinateur";
+    localStorage.setItem("seniya_role", "coordinateur");
+    closePinOverlay();
+    applyRole("coordinateur");
+    switchTab("dashboard", document.getElementById("tabDash"));
+    fetchSignals();
+  } else {
+    document.getElementById("pinError").style.display = "block";
+    pinValue = "";
+    updatePinDots();
+    setTimeout(function() {
+      document.getElementById("pinError").style.display = "none";
+    }, 2000);
+  }
+}
+
+// ===== NAV =====
 function switchTab(p, el) {
   document.querySelectorAll(".page").forEach(function(x) { x.classList.remove("active"); });
   document.querySelectorAll(".nav-item").forEach(function(x) { x.classList.remove("active"); });
   document.getElementById("page-" + p).classList.add("active");
-  el.classList.add("active");
-  if (p === "dashboard") fetchSignals();
+  if (el) el.classList.add("active");
+  if (p === "dashboard") { currentFilter = "tous"; renderCoordinatorList(); }
+  if (p === "citoyen") renderCitizenList();
 }
 
+// ===== FILTERS =====
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-chip").forEach(function(c) { c.classList.remove("active"); });
+  el.classList.add("active");
+  renderCoordinatorList();
+}
+
+// ===== PHOTO & FORM =====
 function handlePhotoSelect(input) {
   if (input.files && input.files[0]) {
     var r = new FileReader();
     r.onload = function(e) {
-      document.getElementById("imgPreview").src = e.target.result;
+      var preview = document.getElementById("imgPreview");
+      preview.src = e.target.result;
+      preview.style.display = "block";
       document.getElementById("reportingFlow").style.display = "block";
-      document.getElementById("reportingFlow").scrollIntoView();
+      document.getElementById("reportingFlow").scrollIntoView({ behavior: "smooth" });
       validateForm();
     };
     r.readAsDataURL(input.files[0]);
@@ -368,165 +647,220 @@ function validateForm() {
   document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat);
 }
 
-// Client-side image compression to optimize Guinean low bandwidth
 function compressImage(file, callback) {
   var reader = new FileReader();
   reader.readAsDataURL(file);
-  reader.onload = function (event) {
+  reader.onload = function(event) {
     var img = new Image();
     img.src = event.target.result;
-    img.onload = function () {
-      var canvas = document.createElement('canvas');
-      var max = 800; // Limit long edge to 800px for field usage
+    img.onload = function() {
+      var canvas = document.createElement("canvas");
+      var max = 800;
       var w = img.width, h = img.height;
       if (w > h && w > max) { h *= max / w; w = max; }
       else if (h > max) { w *= max / h; h = max; }
       canvas.width = w; canvas.height = h;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(function(blob) {
-        callback(blob);
-      }, 'image/jpeg', 0.7); // 70% compression quality
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) { callback(blob); }, "image/jpeg", 0.72);
     };
   };
 }
+
+var TYPE_LABELS = {
+  depot: "🗑️ Dépôt Sauvage",
+  caniveau: "🚿 Caniveau Bouché",
+  voirie: "🛣️ Voirie / Route",
+  eau: "💧 Eau Stagnante",
+  feu: "🔥 Brûlage Sauvage",
+  autre: "⚠️ Autre Problème"
+};
 
 function submitReport() {
   var fileInput = document.getElementById("fileCapture");
   if (!fileInput.files[0]) return;
 
   var btn = document.getElementById("submitBtn");
-  btn.disabled = true; btn.textContent = "⏳ TRANSMISSION EN COURS...";
+  btn.disabled = true; btn.textContent = "⏳ Transmission en cours...";
 
   var ref = "SEN-" + Math.floor(1000 + Math.random() * 9000);
-  
-  compressImage(fileInput.files[0], function(compressedBlob) {
-    var ext = fileInput.files[0].name.split('.').pop() || 'jpg';
+  var quartier = document.getElementById("fieldQuartier").value;
+  var repere = document.getElementById("fieldNote").value || "Lambanyi";
+
+  compressImage(fileInput.files[0], function(blob) {
+    var ext = "jpg";
     var path = "signalements/" + ref + "_before." + ext;
 
-    // Direct fetch upload to bucket storage
     fetch(SUPABASE_URL + "/storage/v1/object/photos/" + path, {
       method: "POST",
       headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" },
-      body: compressedBlob
+      body: blob
     })
     .then(function() {
       var photoUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
-      var payload = {
-        ref: ref,
-        type: selectedCategoryVal,
-        type_label: selectedCategoryVal === 'depot' ? '🗑️ Dépôt Sauvage' : selectedCategoryVal === 'caniveau' ? '🚿 Caniveau Bouché' : selectedCategoryVal === 'voirie' ? '🛣️ Voirie' : '⚠️ Autre',
-        quartier: document.getElementById("fieldQuartier").value,
-        repere: document.getElementById("fieldNote").value || "Lambanyi",
-        description: "Signalement citoyen direct depuis l'application mobile.",
-        urgence: "medium",
-        statut: "nouveau",
-        lat: currentLat || 9.6412,
-        lng: currentLng || -13.5784,
-        photo_url: photoUrl
-      };
-
       return fetch(SUPABASE_URL + "/rest/v1/signalements", {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ref: ref,
+          type: selectedCategoryVal,
+          type_label: TYPE_LABELS[selectedCategoryVal],
+          quartier: quartier,
+          repere: repere,
+          description: "Signalement citoyen direct depuis l'application mobile.",
+          urgence: "medium",
+          statut: "nouveau",
+          lat: currentLat || 9.6412,
+          lng: currentLng || -13.5784,
+          photo_url: photoUrl
+        })
       });
     })
     .then(function() {
-      btn.textContent = "🚀 ENVOYER LE SIGNALEMENT";
-      var waText = "🔴 *NOUVEAU SIGNALEMENT SÈNIYA* (" + ref + ")\n📍 Quartier: " + document.getElementById("fieldQuartier").value + "\n📌 Repère: " + document.getElementById("fieldNote").value + "\n📢 Type: " + selectedCategoryVal.toUpperCase() + "\n\nCoordinateur, merci de traiter la demande.";
-      document.getElementById("waShareBtn").href = "https://wa.me/?text=" + encodeURIComponent(waText);
+      btn.disabled = false; btn.textContent = "🚀 ENVOYER LE SIGNALEMENT";
+
+      var waText = "🔴 *NOUVEAU SIGNALEMENT SÈNIYA* (" + ref + ")\n"
+        + "📍 Quartier : " + quartier + "\n"
+        + "📌 Repère : " + repere + "\n"
+        + "📢 Type : " + TYPE_LABELS[selectedCategoryVal] + "\n\n"
+        + "Coordinateur, merci de traiter la demande. 🇬🇳";
+
+      document.getElementById("waShareBtn").href = "https://wa.me/" + COORD_WA + "?text=" + encodeURIComponent(waText);
       document.getElementById("successOverlay").classList.add("show");
       resetForm();
       fetchSignals();
     })
-    .catch(function(e) {
-      alert("Erreur de connexion. Sauvegarde locale effectuée.");
+    .catch(function() {
       btn.disabled = false; btn.textContent = "🚀 ENVOYER LE SIGNALEMENT";
+      alert("Erreur de connexion. Vérifiez votre réseau et réessayez.");
     });
   });
 }
 
 function resetForm() {
   document.getElementById("fileCapture").value = "";
-  document.getElementById("imgPreview").style.display = "none";
+  var preview = document.getElementById("imgPreview");
+  preview.src = ""; preview.style.display = "none";
   document.getElementById("reportingFlow").style.display = "none";
   document.getElementById("fieldNote").value = "";
   selectedCategoryVal = "";
   document.querySelectorAll(".category-card").forEach(function(x) { x.classList.remove("selected"); });
 }
 
-function closeSuccessModal() { document.getElementById("successOverlay").classList.remove("show"); }
+function closeSuccessModal() {
+  document.getElementById("successOverlay").classList.remove("show");
+}
 
+// ===== SUPABASE =====
 function fetchSignals() {
-  fetch(SUPABASE_URL + "/rest/v1/signalements?order=created_at.desc&limit=40", {
+  fetch(SUPABASE_URL + "/rest/v1/signalements?order=created_at.desc&limit=50", {
     headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    DB = data;
-    renderCitizenList();
-    renderCoordinatorList();
-  });
+    if (Array.isArray(data)) {
+      DB = data;
+      renderCitizenList();
+      renderCoordinatorList();
+      updateBadge();
+    }
+  })
+  .catch(function() { console.log("Erreur Supabase"); });
 }
 
+function updateBadge() {
+  var nouveaux = DB.filter(function(x) { return x.statut === "nouveau"; }).length;
+  var badge = document.getElementById("badgeCount");
+  if (role === "coordinateur" && nouveaux > 0) {
+    badge.style.display = "block";
+    badge.textContent = nouveaux;
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+// ===== RENDER CITOYEN =====
 function renderCitizenList() {
-  var html = DB.slice(0, 5).map(function(s) {
+  var list = document.getElementById("recentCitizenList");
+  if (!DB || DB.length === 0) {
+    list.innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text3); padding:24px 0;">Aucun signalement actif.</p>';
+    return;
+  }
+  list.innerHTML = DB.slice(0, 6).map(function(s) {
+    var label = s.statut === "nouveau" ? "Nouveau" : s.statut === "encours" ? "En cours" : "Résolu";
     return '<div class="recent-card">' +
-      '<img class="recent-img" src="' + (s.photo_url || 'https://images.unsplash.com/photo-1598901847919-b2aa8c4ed4de?w=150&q=80') + '">' +
+      '<img class="recent-img" src="' + (s.photo_url || "https://placehold.co/52x52/e2e8f0/94a3b8?text=📷") + '" onerror="this.src=\'https://placehold.co/52x52/e2e8f0/94a3b8?text=📷\'">' +
       '<div class="recent-info">' +
-        '<div class="recent-type">' + s.type_label + '</div>' +
-        '<div class="recent-loc">📍 ' + s.quartier + ' · ' + (s.repere || '') + '</div>' +
+        '<div class="recent-type">' + (s.type_label || "Signalement") + '</div>' +
+        '<div class="recent-loc">📍 ' + (s.quartier || "") + (s.repere ? " · " + s.repere : "") + '</div>' +
       '</div>' +
-      '<span class="status-badge status-' + s.statut + '">' + (s.statut === 'nouveau' ? 'Nouveau' : s.statut === 'encours' ? 'En Cours' : 'Résolu') + '</span>' +
+      '<span class="status-badge status-' + s.statut + '">' + label + '</span>' +
     '</div>';
-  }).join('');
-  document.getElementById("recentCitizenList").innerHTML = html || '<p style="text-align:center; font-size:13px; color:var(--text3);">Aucun signalement actif.</p>';
+  }).join("");
 }
 
+// ===== RENDER DASHBOARD =====
 function renderCoordinatorList() {
-  var nouveaux = DB.filter(function(x){return x.statut==='nouveau';}).length;
-  var encours = DB.filter(function(x){return x.statut==='encours';}).length;
-  var resolu = DB.filter(function(x){return x.statut==='resolu';}).length;
-  
+  var nouveaux = DB.filter(function(x) { return x.statut === "nouveau"; }).length;
+  var resolu = DB.filter(function(x) { return x.statut === "resolu"; }).length;
   document.getElementById("dTotal").textContent = DB.length;
   document.getElementById("dNouveau").textContent = nouveaux;
   document.getElementById("dResolu").textContent = resolu;
 
-  if (nouveaux > 0) {
-    document.getElementById("badgeCount").style.display = "block";
-    document.getElementById("badgeCount").textContent = nouveaux;
-  } else {
-    document.getElementById("badgeCount").style.display = "none";
+  var filtered = DB;
+  if (currentFilter === "nouveau" || currentFilter === "encours" || currentFilter === "resolu") {
+    filtered = DB.filter(function(x) { return x.statut === currentFilter; });
+  } else if (currentFilter !== "tous") {
+    filtered = DB.filter(function(x) { return x.quartier === currentFilter; });
   }
 
-  var html = DB.map(function(s) {
+  if (filtered.length === 0) {
+    document.getElementById("coordinatorList").innerHTML =
+      '<div style="text-align:center; padding:48px 0; color:var(--text3);"><div style="font-size:40px; margin-bottom:10px;">📋</div><div style="font-size:14px;">Aucun signalement dans cette catégorie.</div></div>';
+    return;
+  }
+
+  var html = filtered.map(function(s) {
+    var label = s.statut === "nouveau" ? "Nouveau" : s.statut === "encours" ? "En cours" : "Résolu";
     var actionBtn = "";
-    if (s.statut === 'nouveau') {
-      actionBtn = '<button class="btn-action work" onclick="updateStatus(' + s.id + ', \'encours\')">🟠 Engager Équipe</button>';
-    } else if (s.statut === 'encours') {
-      actionBtn = '<button class="btn-action done" onclick="triggerAfterProof(' + s.id + ', \'' + s.ref + '\')">✅ Valider Résolution</button>';
+    if (s.statut === "nouveau") {
+      actionBtn = '<button class="btn-action work" onclick="updateStatus(' + s.id + ', \'encours\')">🟠 Engager</button>';
+    } else if (s.statut === "encours") {
+      actionBtn = '<button class="btn-action done" onclick="triggerAfterProof(' + s.id + ', \'' + (s.ref || "") + '\')">✅ Valider</button>';
     }
 
-    var waText = "📋 *SUIVI OPÉRATIONNEL SÈNIYA* (" + s.ref + ")\nQuartier: " + s.quartier + "\nStatut actuel: " + s.statut.toUpperCase() + "\nCatégorie: " + s.type_label;
-    var waLink = '<button class="btn-action wa" onclick="window.open(\'https://wa.me/?text=' + encodeURIComponent(waText) + '\')">💬 Partager</button>';
+    var waText = "📋 *SUIVI SÈNIYA* (" + (s.ref || s.id) + ")\n"
+      + "Quartier : " + s.quartier + "\n"
+      + "Statut : " + label + "\n"
+      + "Type : " + (s.type_label || "") + " 🇬🇳";
 
     return '<div class="ticket-card">' +
       '<div class="ticket-header">' +
-        '<div class="ticket-title">' + s.type_label + ' (' + s.ref + ')</div>' +
-        '<span class="status-badge status-' + s.statut + '">' + s.statut + '</span>' +
+        '<div class="ticket-title">' + (s.type_label || "Signalement") + '</div>' +
+        '<span class="status-badge status-' + s.statut + '">' + label + '</span>' +
       '</div>' +
-      '<div class="ticket-meta">Quartier: <b>' + s.quartier + '</b> · ' + (s.repere || '') + '</div>' +
+      '<div class="ticket-ref">Réf. ' + (s.ref || "—") + '</div>' +
+      '<div class="ticket-meta">📍 <b>' + s.quartier + '</b>' + (s.repere ? " · " + s.repere : "") + '</div>' +
       '<div class="proof-container">' +
-        '<div class="proof-box"><img src="' + (s.photo_url || '') + '"><div class="proof-tag">Avant</div></div>' +
-        '<div class="proof-box" id="afterBox_' + s.id + '">' + (s.photo_after_url ? '<img src="' + s.photo_after_url + '">' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--text3);text-align:center;padding:4px;">Pas de preuve</div>') + '<div class="proof-tag">Après</div></div>' +
+        '<div class="proof-box">' +
+          (s.photo_url ? '<img src="' + s.photo_url + '">' : '<div class="proof-empty">Pas de photo</div>') +
+          '<div class="proof-tag">Avant</div>' +
+        '</div>' +
+        '<div class="proof-box" id="afterBox_' + s.id + '">' +
+          (s.photo_after_url ? '<img src="' + s.photo_after_url + '">' : '<div class="proof-empty">En attente</div>') +
+          '<div class="proof-tag">Après</div>' +
+        '</div>' +
       '</div>' +
-      '<div class="ticket-actions">' + actionBtn + waLink + '</div>' +
+      '<div class="ticket-actions">' +
+        actionBtn +
+        '<button class="btn-action wa" onclick="window.open(\'https://wa.me/' + COORD_WA + '?text=' + encodeURIComponent(waText) + '\', \'_blank\')">💬 Partager</button>' +
+      '</div>' +
     '</div>';
-  }).join('');
+  }).join("");
+
   document.getElementById("coordinatorList").innerHTML = html;
 }
 
+// ===== STATUS UPDATE =====
 function updateStatus(id, newStatus, afterPhotoUrl) {
   var payload = { statut: newStatus };
   if (afterPhotoUrl) payload.photo_after_url = afterPhotoUrl;
@@ -535,10 +869,7 @@ function updateStatus(id, newStatus, afterPhotoUrl) {
     method: "PATCH",
     headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
     body: JSON.stringify(payload)
-  })
-  .then(function() {
-    fetchSignals();
-  });
+  }).then(function() { fetchSignals(); });
 }
 
 function triggerAfterProof(id, ref) {
@@ -546,50 +877,64 @@ function triggerAfterProof(id, ref) {
   var captureInput = document.getElementById("fileAfterCapture");
   captureInput.value = "";
   captureInput.click();
-  
+
   captureInput.onchange = function() {
     if (captureInput.files && captureInput.files[0]) {
-      compressImage(captureInput.files[0], function(compressedBlob) {
-        var ext = captureInput.files[0].name.split('.').pop() || 'jpg';
-        var path = "resolution/" + ref + "_after." + ext;
-
+      compressImage(captureInput.files[0], function(blob) {
+        var path = "resolution/" + ref + "_after.jpg";
         fetch(SUPABASE_URL + "/storage/v1/object/photos/" + path, {
           method: "POST",
           headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" },
-          body: compressedBlob
-        })
-        .then(function() {
+          body: blob
+        }).then(function() {
           var afterUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
-          updateStatus(id, 'resolu', afterUrl);
-          
-          // Automatic citizen trust broadcast message via WhatsApp context
-          var waBroad = "✅ *PROPRETÉ VALIDÉE À LAMBANYI* (" + ref + ")\nLe dépôt sauvage signalé dans le quartier " + DB.find(function(x){return x.id===id;}).quartier + " a été entièrement nettoyé par les agents municipaux.\n\nMerci pour votre vigilance citoyenne ! 🇸🇳";
-          window.open("https://wa.me/?text=" + encodeURIComponent(waBroad));
+          updateStatus(id, "resolu", afterUrl);
+
+          var s = DB.find(function(x) { return x.id === id; });
+          var quartierName = s ? s.quartier : "Lambanyi";
+          var refName = s ? (s.ref || id) : id;
+          var waBroad = "✅ *RÉSOLUTION SÈNIYA* (" + refName + ")\n"
+            + "Le problème signalé à *" + quartierName + "* a été résolu par les agents municipaux.\n"
+            + "Merci pour votre vigilance citoyenne ! 🇬🇳";
+          window.open("https://wa.me/" + COORD_WA + "?text=" + encodeURIComponent(waBroad), "_blank");
         });
       });
     }
   };
 }
 
+// ===== MAP =====
 function loadMap() {
   if (lMap) return;
   setTimeout(function() {
-    lMap = L.map('map', {zoomControl: false}).setView([9.6412, -13.5784], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(lMap);
-    
-    var colors = { nouveau: '#dc2626', encours: '#ea580c', resolu: '#16a34a' };
+    lMap = L.map("map", { zoomControl: true }).setView([9.6412, -13.5784], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap", maxZoom: 19
+    }).addTo(lMap);
+
+    // Zones quartiers
+    var zones = [
+      { name: "Nongo", coords: [[9.648,-13.587],[9.648,-13.572],[9.640,-13.572],[9.640,-13.587]], color: "#14532d" },
+      { name: "Kiroti", coords: [[9.640,-13.582],[9.640,-13.570],[9.634,-13.570],[9.634,-13.582]], color: "#c8a84b" },
+      { name: "Lambanyi Centre", coords: [[9.634,-13.580],[9.634,-13.568],[9.628,-13.568],[9.628,-13.580]], color: "#2563eb" }
+    ];
+    zones.forEach(function(z) {
+      L.polygon(z.coords, { color: z.color, fillColor: z.color, fillOpacity: 0.08, weight: 2, dashArray: "6,4" })
+        .addTo(lMap).bindPopup("<b>" + z.name + "</b>");
+    });
+
+    // Signalements
+    var colors = { nouveau: "#dc2626", encours: "#ea580c", resolu: "#16a34a" };
     DB.forEach(function(s) {
       if (s.lat && s.lng) {
-        L.circleMarker([s.lat, s.lng], { radius: 10, fillColor: colors[s.statut], color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .addTo(lMap)
-         .bindPopup('<b>' + s.type_label + '</b><br>' + s.quartier + '<br>Statut: ' + s.statut);
+        L.circleMarker([s.lat, s.lng], {
+          radius: 10, fillColor: colors[s.statut] || "#94a3b8",
+          color: "#fff", weight: 2, fillOpacity: 0.9
+        }).addTo(lMap).bindPopup("<b>" + (s.type_label || "") + "</b><br>📍 " + s.quartier + "<br>Statut : " + s.statut);
       }
     });
   }, 200);
 }
-
-// Initial pull
-fetchSignals();
 </script>
 </body>
 </html>
