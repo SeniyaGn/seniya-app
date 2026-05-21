@@ -266,24 +266,34 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .pin-key.del { font-size: 18px; }
 .pin-cancel { width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px; background: white; font-size: 14px; color: var(--text3); font-weight: 700; cursor: pointer; font-family: inherit; }
 
+/* ===== GPS BUTTON ===== */
+.btn-gps {
+  width: 100%; padding: 16px; border: 2.5px dashed var(--g3);
+  border-radius: var(--radius); background: var(--g5); color: var(--g2);
+  font-family: "Syne", sans-serif; font-size: 15px; font-weight: 800;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-bottom: 10px; transition: all 0.2s;
+}
+.btn-gps:active { transform: scale(0.97); }
+.btn-gps.loading { border-style: solid; background: #fffbeb; color: #92400e; border-color: #f59e0b; animation: none; }
+.btn-gps.success { border-style: solid; border-color: var(--g4); background: var(--g5); color: var(--g2); }
+.btn-gps.error { border-style: solid; border-color: var(--red); background: #fee2e2; color: var(--red); }
+
 /* ===== GPS INDICATOR ===== */
 .gps-indicator {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 600; margin-bottom: 14px;
-  border: 1.5px solid var(--border); background: white;
-  transition: all 0.3s;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; margin-bottom: 14px;
+  border: 1.5px solid var(--border); background: white; transition: all 0.3s;
 }
-.gps-indicator.loading { border-color: var(--border); color: var(--text2); }
+.gps-indicator.loading { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
 .gps-indicator.success { border-color: var(--g4); background: var(--g5); color: var(--g2); }
-.gps-indicator.fallback { border-color: #fde68a; background: #fffbeb; color: #92400e; }
-.gps-dot {
-  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-}
-.gps-indicator.loading .gps-dot { background: var(--text3); animation: gpsPulse 1s infinite; }
+.gps-indicator.error { border-color: var(--red); background: #fee2e2; color: var(--red); }
+.gps-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.gps-indicator.loading .gps-dot { background: #f59e0b; animation: gpsPulse 1s infinite; }
 .gps-indicator.success .gps-dot { background: var(--g4); }
-.gps-indicator.fallback .gps-dot { background: #f59e0b; }
-@keyframes gpsPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.gps-indicator.error .gps-dot { background: var(--red); }
+@keyframes gpsPulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 </style>
 </head>
 <body>
@@ -344,13 +354,20 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
           <option value="Lambanyi Centre">Lambanyi Centre</option>
           <option value="Nongo">Nongo</option>
           <option value="Kiroti">Kiroti</option>
+          <option value="Autre">Autre (hors périmètre)</option>
         </select>
         <input type="text" class="input-minimal" id="fieldNote" placeholder="Point de repère (Ex: Face à la pharmacie...)">
 
-        <!-- GPS Indicator -->
-        <div class="gps-indicator loading" id="gpsIndicator">
+        <div class="section-title">4. Localisation GPS <span style="color:var(--red); font-size:12px;">* Obligatoire</span></div>
+
+        <!-- GPS Button -->
+        <button class="btn-gps" id="gpsBtn" onclick="requestGPS()">
+          <span id="gpsBtnIcon">📍</span>
+          <span id="gpsBtnText">ACTIVER MA LOCALISATION</span>
+        </button>
+        <div class="gps-indicator" id="gpsIndicator" style="display:none;">
           <div class="gps-dot"></div>
-          <span id="gpsText">📡 Localisation en cours...</span>
+          <span id="gpsText"></span>
         </div>
 
         <button class="btn-big-submit" id="submitBtn" onclick="submitReport()" disabled>
@@ -470,16 +487,30 @@ var currentFilter = "tous";
 var pinValue = "";
 var currentLat = null, currentLng = null;
 
-// GPS auto avec timeout 10s
+// GPS — manuel obligatoire
 var gpsReady = false;
-function initGPS() {
+
+function requestGPS() {
+  var btn = document.getElementById("gpsBtn");
+  var ind = document.getElementById("gpsIndicator");
+  var txt = document.getElementById("gpsText");
+
+  // État chargement
+  btn.className = "btn-gps loading";
+  document.getElementById("gpsBtnIcon").textContent = "⏳";
+  document.getElementById("gpsBtnText").textContent = "LOCALISATION EN COURS...";
+  ind.className = "gps-indicator loading";
+  ind.style.display = "flex";
+  txt.textContent = "📡 Recherche de votre position GPS...";
+
   if (!navigator.geolocation) {
-    setGPSFallback();
+    setGPSError("GPS non disponible sur cet appareil.");
     return;
   }
+
   var timeout = setTimeout(function() {
-    if (!gpsReady) setGPSFallback();
-  }, 10000);
+    if (!gpsReady) setGPSError("Délai dépassé. Vérifiez les permissions GPS.");
+  }, 12000);
 
   navigator.geolocation.getCurrentPosition(
     function(p) {
@@ -487,28 +518,37 @@ function initGPS() {
       gpsReady = true;
       currentLat = p.coords.latitude;
       currentLng = p.coords.longitude;
-      var ind = document.getElementById("gpsIndicator");
-      var txt = document.getElementById("gpsText");
-      if (ind) { ind.className = "gps-indicator success"; }
-      if (txt) { txt.textContent = "✅ Position GPS détectée (" + currentLat.toFixed(4) + ", " + currentLng.toFixed(4) + ")"; }
+
+      btn.className = "btn-gps success";
+      document.getElementById("gpsBtnIcon").textContent = "✅";
+      document.getElementById("gpsBtnText").textContent = "POSITION DÉTECTÉE";
+      ind.className = "gps-indicator success";
+      txt.textContent = "✅ GPS OK — " + currentLat.toFixed(5) + ", " + currentLng.toFixed(5);
+      validateForm();
     },
-    function() {
+    function(err) {
       clearTimeout(timeout);
-      setGPSFallback();
+      var msg = "GPS refusé. Autorisez la localisation dans votre navigateur.";
+      if (err.code === 3) msg = "Délai dépassé. Réessayez.";
+      setGPSError(msg);
     },
-    { enableHighAccuracy: true, timeout: 10000 }
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
   );
 }
 
-function setGPSFallback() {
+function setGPSError(msg) {
   gpsReady = false;
+  var btn = document.getElementById("gpsBtn");
   var ind = document.getElementById("gpsIndicator");
   var txt = document.getElementById("gpsText");
-  if (ind) { ind.className = "gps-indicator fallback"; }
-  if (txt) { txt.textContent = "⚠️ Position approximative — quartier sélectionné utilisé"; }
+  btn.className = "btn-gps error";
+  document.getElementById("gpsBtnIcon").textContent = "⚠️";
+  document.getElementById("gpsBtnText").textContent = "RÉESSAYER LA LOCALISATION";
+  ind.className = "gps-indicator error";
+  ind.style.display = "flex";
+  txt.textContent = "❌ " + msg;
+  validateForm();
 }
-
-initGPS();
 
 // ===== SPLASH =====
 window.addEventListener("load", function() {
@@ -644,7 +684,8 @@ function selectCategory(cat, el) {
 function validateForm() {
   var hasPhoto = document.getElementById("fileCapture").files.length > 0;
   var hasCat = selectedCategoryVal !== "";
-  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat);
+  var hasGPS = gpsReady === true;
+  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat && hasGPS);
 }
 
 function compressImage(file, callback) {
@@ -743,6 +784,12 @@ function resetForm() {
   document.getElementById("reportingFlow").style.display = "none";
   document.getElementById("fieldNote").value = "";
   selectedCategoryVal = "";
+  gpsReady = false;
+  currentLat = null; currentLng = null;
+  var btn = document.getElementById("gpsBtn");
+  if (btn) { btn.className = "btn-gps"; document.getElementById("gpsBtnIcon").textContent = "📍"; document.getElementById("gpsBtnText").textContent = "ACTIVER MA LOCALISATION"; }
+  var ind = document.getElementById("gpsIndicator");
+  if (ind) ind.style.display = "none";
   document.querySelectorAll(".category-card").forEach(function(x) { x.classList.remove("selected"); });
 }
 
