@@ -953,26 +953,50 @@ function uploadAfterPhoto(id, ref) {
     if (uploadBtn) { uploadBtn.textContent = "⏳ Upload..."; uploadBtn.disabled = true; }
 
     compressImage(captureInput.files[0], function(blob) {
-      var path = "resolution/" + (ref || id) + "_after.jpg";
+      // Timestamp dans le nom pour éviter les conflits Supabase Storage
+      var ts = Date.now();
+      var path = "resolution/" + (ref || id) + "_after_" + ts + ".jpg";
+
       fetch(SUPABASE_URL + "/storage/v1/object/photos/" + path, {
         method: "POST",
         headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" },
         body: blob
       })
-      .then(function() {
+      .then(function(res) {
+        if (!res.ok) throw new Error("Storage upload failed: " + res.status);
         var afterUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
         return fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Prefer": "return=representation"
+          },
           body: JSON.stringify({ photo_after_url: afterUrl })
+        }).then(function(r) {
+          return r.json().then(function() { return afterUrl; });
         });
       })
-      .then(function() {
-        fetchSignals(); // Recharge — le bouton ✅ Résolu s'active automatiquement
+      .then(function(afterUrl) {
+        // Mettre à jour DB local immédiatement sans attendre fetchSignals
+        var record = DB.find(function(x) { return x.id === id; });
+        if (record) record.photo_after_url = afterUrl;
+
+        // Mettre à jour l'affichage du bloc Après directement
+        var afterBox = document.getElementById("afterBox_" + id);
+        if (afterBox) {
+          afterBox.innerHTML = '<img src="' + afterUrl + '" style="width:100%;height:100%;object-fit:cover;">' +
+            '<div class="proof-tag">Après</div>';
+        }
+
+        // Recharger pour activer le bouton ✅ Résolu
+        fetchSignals();
       })
-      .catch(function() {
+      .catch(function(err) {
+        console.error(err);
         if (uploadBtn) { uploadBtn.textContent = "📷 Photo Après"; uploadBtn.disabled = false; }
-        alert("Erreur upload. Vérifiez votre réseau.");
+        alert("Erreur upload photo. Vérifiez votre connexion et réessayez.");
       });
     });
   };
