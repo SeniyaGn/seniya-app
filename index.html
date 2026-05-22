@@ -966,7 +966,7 @@ function updateStatus(id, newStatus, afterPhotoUrl) {
   }).then(function() { fetchSignals(); });
 }
 
-// ===== ÉTAPE 1 : UPLOAD PHOTO APRÈS =====
+// ===== ÉTAPE 1 : UPLOAD PHOTO APRÈS (base64 direct en DB) =====
 function uploadAfterPhoto(id, ref) {
   var captureInput = document.getElementById("fileAfterCapture");
   captureInput.value = "";
@@ -979,19 +979,20 @@ function uploadAfterPhoto(id, ref) {
     if (uploadBtn) { uploadBtn.textContent = "⏳ Upload..."; uploadBtn.disabled = true; }
 
     compressImage(captureInput.files[0], function(blob) {
-      // Timestamp dans le nom pour éviter les conflits Supabase Storage
-      var ts = Date.now();
-      var path = "resolution/" + (ref || id) + "_after_" + ts + ".jpg";
+      // Convertir blob en base64 data URL
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var base64Url = e.target.result; // "data:image/jpeg;base64,..."
 
-      fetch(SUPABASE_URL + "/storage/v1/object/photos/" + path, {
-        method: "POST",
-        headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" },
-        body: blob
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error("Storage upload failed: " + res.status);
-        var afterUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
-        return fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
+        // Afficher immédiatement la photo dans le bloc Après
+        var afterBox = document.getElementById("afterBox_" + id);
+        if (afterBox) {
+          afterBox.innerHTML = '<img src="' + base64Url + '" style="width:100%;height:100%;object-fit:cover;">' +
+            '<div class="proof-tag">Après</div>';
+        }
+
+        // Sauvegarder en base64 dans la colonne photo_after_url
+        fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -999,31 +1000,26 @@ function uploadAfterPhoto(id, ref) {
             "Authorization": "Bearer " + SUPABASE_KEY,
             "Prefer": "return=representation"
           },
-          body: JSON.stringify({ photo_after_url: afterUrl })
-        }).then(function(r) {
-          return r.json().then(function() { return afterUrl; });
+          body: JSON.stringify({ photo_after_url: base64Url })
+        })
+        .then(function(r) {
+          if (!r.ok) throw new Error("PATCH failed: " + r.status);
+          // Mettre à jour DB local
+          var record = DB.find(function(x) { return x.id === id; });
+          if (record) record.photo_after_url = base64Url;
+          // Recharger pour activer le bouton ✅ Résolu
+          fetchSignals();
+        })
+        .catch(function(err) {
+          console.error(err);
+          // Même si Supabase échoue, la photo est affichée — on active le bouton manuellement
+          var record = DB.find(function(x) { return x.id === id; });
+          if (record) record.photo_after_url = base64Url;
+          renderCoordinatorList();
+          alert("Photo enregistrée localement. Connexion Supabase limitée.");
         });
-      })
-      .then(function(afterUrl) {
-        // Mettre à jour DB local immédiatement sans attendre fetchSignals
-        var record = DB.find(function(x) { return x.id === id; });
-        if (record) record.photo_after_url = afterUrl;
-
-        // Mettre à jour l'affichage du bloc Après directement
-        var afterBox = document.getElementById("afterBox_" + id);
-        if (afterBox) {
-          afterBox.innerHTML = '<img src="' + afterUrl + '" style="width:100%;height:100%;object-fit:cover;">' +
-            '<div class="proof-tag">Après</div>';
-        }
-
-        // Recharger pour activer le bouton ✅ Résolu
-        fetchSignals();
-      })
-      .catch(function(err) {
-        console.error(err);
-        if (uploadBtn) { uploadBtn.textContent = "📷 Photo Après"; uploadBtn.disabled = false; }
-        alert("Erreur upload photo. Vérifiez votre connexion et réessayez.");
-      });
+      };
+      reader.readAsDataURL(blob);
     });
   };
 }
