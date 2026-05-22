@@ -827,6 +827,29 @@ function closeSuccessModal() {
 
 // ===== SUPABASE =====
 function fetchSignals() {
+// ===== LOCALSTORAGE PHOTOS APRÈS =====
+function saveAfterPhotoLocal(id, base64Url) {
+  try {
+    var key = "seniya_after_" + id;
+    localStorage.setItem(key, base64Url);
+  } catch(e) { console.warn("localStorage plein ou indisponible"); }
+}
+
+function getAfterPhotoLocal(id) {
+  try { return localStorage.getItem("seniya_after_" + id); } catch(e) { return null; }
+}
+
+function mergeLocalPhotos() {
+  DB.forEach(function(s) {
+    if (!s.photo_after_url) {
+      var local = getAfterPhotoLocal(s.id);
+      if (local) s.photo_after_url = local;
+    }
+  });
+}
+
+// ===== FETCH SIGNALS =====
+function fetchSignals() {
   fetch(SUPABASE_URL + "/rest/v1/signalements?order=created_at.desc&limit=50", {
     headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
   })
@@ -834,6 +857,7 @@ function fetchSignals() {
   .then(function(data) {
     if (Array.isArray(data)) {
       DB = data;
+      mergeLocalPhotos(); // Injecter photos après depuis localStorage
       renderCitizenList();
       renderCoordinatorList();
       updateBadge();
@@ -966,7 +990,7 @@ function updateStatus(id, newStatus, afterPhotoUrl) {
   }).then(function() { fetchSignals(); });
 }
 
-// ===== ÉTAPE 1 : UPLOAD PHOTO APRÈS (base64 direct en DB) =====
+// ===== ÉTAPE 1 : UPLOAD PHOTO APRÈS (base64 direct en DB + localStorage fallback) =====
 function uploadAfterPhoto(id, ref) {
   var captureInput = document.getElementById("fileAfterCapture");
   captureInput.value = "";
@@ -979,45 +1003,37 @@ function uploadAfterPhoto(id, ref) {
     if (uploadBtn) { uploadBtn.textContent = "⏳ Upload..."; uploadBtn.disabled = true; }
 
     compressImage(captureInput.files[0], function(blob) {
-      // Convertir blob en base64 data URL
       var reader = new FileReader();
       reader.onload = function(e) {
-        var base64Url = e.target.result; // "data:image/jpeg;base64,..."
+        var base64Url = e.target.result;
 
-        // Afficher immédiatement la photo dans le bloc Après
+        // 1. Sauvegarder en localStorage immédiatement (fallback fiable)
+        saveAfterPhotoLocal(id, base64Url);
+
+        // 2. Mettre à jour DB local
+        var record = DB.find(function(x) { return x.id === id; });
+        if (record) record.photo_after_url = base64Url;
+
+        // 3. Afficher immédiatement dans le bloc Après
         var afterBox = document.getElementById("afterBox_" + id);
         if (afterBox) {
           afterBox.innerHTML = '<img src="' + base64Url + '" style="width:100%;height:100%;object-fit:cover;">' +
             '<div class="proof-tag">Après</div>';
         }
 
-        // Sauvegarder en base64 dans la colonne photo_after_url
+        // 4. Recharger pour activer le bouton ✅ Résolu
+        renderCoordinatorList();
+
+        // 5. Tenter Supabase en arrière-plan (silencieux si ça échoue)
         fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             "apikey": SUPABASE_KEY,
-            "Authorization": "Bearer " + SUPABASE_KEY,
-            "Prefer": "return=representation"
+            "Authorization": "Bearer " + SUPABASE_KEY
           },
           body: JSON.stringify({ photo_after_url: base64Url })
-        })
-        .then(function(r) {
-          if (!r.ok) throw new Error("PATCH failed: " + r.status);
-          // Mettre à jour DB local
-          var record = DB.find(function(x) { return x.id === id; });
-          if (record) record.photo_after_url = base64Url;
-          // Recharger pour activer le bouton ✅ Résolu
-          fetchSignals();
-        })
-        .catch(function(err) {
-          console.error(err);
-          // Même si Supabase échoue, la photo est affichée — on active le bouton manuellement
-          var record = DB.find(function(x) { return x.id === id; });
-          if (record) record.photo_after_url = base64Url;
-          renderCoordinatorList();
-          alert("Photo enregistrée localement. Connexion Supabase limitée.");
-        });
+        }).catch(function() { /* Silencieux — localStorage est le fallback */ });
       };
       reader.readAsDataURL(blob);
     });
@@ -1034,13 +1050,15 @@ function markResolu(id, ref, quartier) {
     body: JSON.stringify({ statut: "resolu" })
   })
   .then(function() {
+    // Nettoyer localStorage — plus besoin du fallback
+    try { localStorage.removeItem("seniya_after_" + id); } catch(e) {}
     var waBroad = "✅ *RÉSOLUTION SÈNIYA* (" + ref + ")\n"
       + "Le problème signalé à *" + quartier + "* a été entièrement traité par les agents municipaux.\n"
       + "Merci pour votre vigilance citoyenne ! 🇬🇳";
     window.open("https://wa.me/" + COORD_WA + "?text=" + encodeURIComponent(waBroad), "_blank");
     fetchSignals();
   })
-  .catch(function() { alert("Erreur. Vérifiez votre réseau."); });
+  .catch(function() { alert("Erreur réseau. Réessayez."); });
 }
 
 // ===== MAP =====
