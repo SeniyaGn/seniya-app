@@ -268,18 +268,39 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .pin-key.del { font-size: 18px; }
 .pin-cancel { width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px; background: white; font-size: 14px; color: var(--text3); font-weight: 700; cursor: pointer; font-family: inherit; }
 
+/* ===== LOCALISATION CARD ===== */
+.loc-card {
+  background: white; border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 18px 16px; margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.loc-card-title {
+  font-size: 15px; font-weight: 800; color: var(--text);
+  margin-bottom: 16px;
+}
+.loc-label {
+  font-size: 11px; font-weight: 800; color: var(--text2);
+  letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.loc-card .input-minimal {
+  margin-bottom: 14px; background: var(--bg); border-color: var(--border);
+}
+.loc-card .btn-gps {
+  margin-bottom: 0;
+}
+
 /* ===== GPS BUTTON ===== */
 .btn-gps {
-  width: 100%; padding: 16px; border: 2.5px dashed var(--g3);
-  border-radius: var(--radius); background: var(--g5); color: var(--g2);
-  font-family: "Syne", sans-serif; font-size: 15px; font-weight: 800;
+  width: 100%; padding: 16px; border: 2px solid var(--g3);
+  border-radius: var(--radius-sm); background: white; color: var(--g2);
+  font-family: inherit; font-size: 15px; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   gap: 10px; margin-bottom: 10px; transition: all 0.2s;
 }
-.btn-gps:active { transform: scale(0.97); }
-.btn-gps.loading { border-style: solid; background: #fffbeb; color: #92400e; border-color: #f59e0b; animation: none; }
-.btn-gps.success { border-style: solid; border-color: var(--g4); background: var(--g5); color: var(--g2); }
-.btn-gps.error { border-style: solid; border-color: var(--red); background: #fee2e2; color: var(--red); }
+.btn-gps:active { background: var(--g5); transform: scale(0.98); }
+.btn-gps.loading { background: #fffbeb; color: #92400e; border-color: #f59e0b; }
+.btn-gps.success { background: var(--g5); color: var(--g2); border-color: var(--g4); }
+.btn-gps.error { background: #fee2e2; color: var(--red); border-color: var(--red); }
 
 /* ===== GPS INDICATOR ===== */
 .gps-indicator {
@@ -351,25 +372,30 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
           <div class="category-card" onclick="selectCategory('autre', this)"><span class="cat-emoji">⚠️</span><span class="cat-title">Autre Problème</span></div>
         </div>
 
-        <div class="section-title">3. Précisions (Optionnel)</div>
-        <select class="input-minimal" id="fieldQuartier">
-          <option value="Lambanyi Centre">Lambanyi Centre</option>
-          <option value="Nongo">Nongo</option>
-          <option value="Kiroti">Kiroti</option>
-          <option value="Autre">Autre (hors périmètre)</option>
-        </select>
-        <input type="text" class="input-minimal" id="fieldNote" placeholder="Point de repère (Ex: Face à la pharmacie...)">
+        <!-- Localisation card -->
+        <div class="loc-card">
+          <div class="loc-card-title">📍 Localisation</div>
 
-        <div class="section-title">4. Localisation GPS <span style="color:var(--red); font-size:12px;">* Obligatoire</span></div>
+          <div class="loc-label">QUARTIER <span style="color:var(--red);">*</span></div>
+          <select class="input-minimal" id="fieldQuartier">
+            <option value="" disabled selected>Sélectionner le quartier</option>
+            <option value="Lambanyi Centre">Lambanyi Centre</option>
+            <option value="Nongo">Nongo</option>
+            <option value="Kiroti">Kiroti</option>
+            <option value="Autre">Autre (hors périmètre)</option>
+          </select>
 
-        <!-- GPS Button -->
-        <button class="btn-gps" id="gpsBtn" onclick="requestGPS()">
-          <span id="gpsBtnIcon">📍</span>
-          <span id="gpsBtnText">ACTIVER MA LOCALISATION</span>
-        </button>
-        <div class="gps-indicator" id="gpsIndicator" style="display:none;">
-          <div class="gps-dot"></div>
-          <span id="gpsText"></span>
+          <div class="loc-label">REPÈRE <span style="color:var(--text3); font-weight:400;">(OPTIONNEL)</span></div>
+          <input type="text" class="input-minimal" id="fieldNote" placeholder="Ex: Près du marché central, carrefour...">
+
+          <button class="btn-gps" id="gpsBtn" onclick="requestGPS()">
+            <span id="gpsBtnIcon">📡</span>
+            <span id="gpsBtnText">Détecter ma position GPS</span>
+          </button>
+          <div class="gps-indicator" id="gpsIndicator" style="display:none;">
+            <div class="gps-dot"></div>
+            <span id="gpsText"></span>
+          </div>
         </div>
 
         <button class="btn-big-submit" id="submitBtn" onclick="submitReport()" disabled>
