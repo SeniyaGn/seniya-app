@@ -317,6 +317,14 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .gps-indicator.success .gps-dot { background: var(--g4); }
 .gps-indicator.error .gps-dot { background: var(--red); }
 @keyframes gpsPulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+/* ===== ROLE SELECTOR ===== */
+.role-select-btn {
+  width: 100%; padding: 16px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); background: white; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; text-align: left;
+  font-family: inherit; font-size: 14px; color: var(--text); transition: all 0.2s;
+}
+.role-select-btn:active { background: var(--g5); border-color: var(--g3); }
 </style>
 </head>
 <body>
@@ -438,6 +446,18 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
     </div>
   </div>
 
+  <!-- PAGE AGENT -->
+  <div class="page" id="page-agent">
+    <div class="dash-container">
+      <div style="background: linear-gradient(135deg, #92400e, #b45309); padding: 16px; border-radius: var(--radius); margin-bottom: 14px; color: white; text-align:center;">
+        <div style="font-size:32px; margin-bottom:6px;">🦺</div>
+        <div style="font-family:'Syne',sans-serif; font-size:18px; font-weight:800;">Espace Agent de Terrain</div>
+        <div style="font-size:12px; opacity:0.8; margin-top:4px;">Tickets assignés à traiter</div>
+      </div>
+      <div id="agentList"></div>
+    </div>
+  </div>
+
 </div><!-- end #app -->
 
 <!-- BOTTOM NAV -->
@@ -447,6 +467,10 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
   </div>
   <div class="nav-item" onclick="switchTab('map', this); loadMap()">
     <div class="nav-icon">🗺️</div><div class="nav-label">Carte</div>
+  </div>
+  <div class="nav-item" id="tabAgent" onclick="switchTab('agent', this)" style="display:none; position:relative;">
+    <div class="nav-icon">🦺</div><div class="nav-label">Terrain</div>
+    <div class="nav-badge" id="badgeAgent" style="display:none;">0</div>
   </div>
   <div class="nav-item" id="tabDash" onclick="switchTab('dashboard', this)" style="display:none; position:relative;">
     <div class="nav-icon">📊</div><div class="nav-label">Gestion</div>
@@ -468,10 +492,29 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
   </div>
 </div>
 
+<!-- ROLE SELECTOR OVERLAY -->
+<div class="pin-overlay" id="roleSelectOverlay">
+  <div class="pin-sheet">
+    <div class="pin-title">👤 Choisir votre rôle</div>
+    <div class="pin-sub">Sélectionnez votre profil d'accès</div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin:20px 0;">
+      <button class="role-select-btn" onclick="selectRoleToLogin('agent')">
+        <span style="font-size:24px;">🦺</span>
+        <div><div style="font-weight:800;">Agent de Terrain</div><div style="font-size:11px; opacity:0.7;">Uploader photo après (preuve)</div></div>
+      </button>
+      <button class="role-select-btn" onclick="selectRoleToLogin('coordinateur')">
+        <span style="font-size:24px;">📊</span>
+        <div><div style="font-weight:800;">Coordinateur</div><div style="font-size:11px; opacity:0.7;">Gestion complète + validation</div></div>
+      </button>
+    </div>
+    <button class="pin-cancel" onclick="closeRoleSelect()">Annuler</button>
+  </div>
+</div>
+
 <!-- PIN OVERLAY -->
 <div class="pin-overlay" id="pinOverlay">
   <div class="pin-sheet">
-    <div class="pin-title">🔐 Accès Coordinateur</div>
+    <div class="pin-title" id="pinTitle">🔐 Accès Agent</div>
     <div class="pin-sub">Entrez le code PIN à 4 chiffres</div>
     <div class="pin-dots">
       <div class="pin-dot" id="pd1"></div>
@@ -502,20 +545,19 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 // ===== CONFIG =====
 var SUPABASE_URL = "https://cfuaxymixutyezprqown.supabase.co";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdWF4eW1peHV0eWV6cHJxb3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYzMjQsImV4cCI6MjA5NDYxMjMyNH0.bQsmL6uSU3xuoiyCCRdLhp_w23brkVMIfMjw-ELjEsw";
-var COORD_PIN = "2601";
-var COORD_WA = "224613508207";
+var COORD_PIN  = "2601";
+var AGENT_PIN  = "1122"; // PIN agent de terrain
+var COORD_WA   = "224613508207";
 
 // ===== STATE =====
 var DB = [];
 var role = localStorage.getItem("seniya_role") || "citoyen";
+var pendingRoleLogin = ""; // rôle en cours de login
 var selectedCategoryVal = "";
-var activeReportIdForProof = null;
 var lMap = null;
 var currentFilter = "tous";
 var pinValue = "";
 var currentLat = null, currentLng = null;
-
-// GPS — manuel obligatoire
 var gpsReady = false;
 
 function requestGPS() {
@@ -594,25 +636,44 @@ window.addEventListener("load", function() {
 
 // ===== ROLE =====
 function toggleRole() {
-  if (role === "coordinateur") {
+  if (role === "coordinateur" || role === "agent") {
     role = "citoyen";
     localStorage.setItem("seniya_role", "citoyen");
     applyRole("citoyen");
     switchTab("citoyen", document.querySelectorAll(".nav-item")[0]);
   } else {
-    openPinOverlay();
+    document.getElementById("roleSelectOverlay").classList.add("show");
   }
 }
 
+function selectRoleToLogin(r) {
+  pendingRoleLogin = r;
+  document.getElementById("roleSelectOverlay").classList.remove("show");
+  document.getElementById("pinTitle").textContent = r === "agent" ? "🦺 Accès Agent de Terrain" : "📊 Accès Coordinateur";
+  openPinOverlay();
+}
+
+function closeRoleSelect() {
+  document.getElementById("roleSelectOverlay").classList.remove("show");
+}
+
 function applyRole(r) {
-  var dashTab = document.getElementById("tabDash");
   var roleBtn = document.getElementById("roleBtn");
+  var tabDash = document.getElementById("tabDash");
+  var tabAgent = document.getElementById("tabAgent");
+
   if (r === "coordinateur") {
-    dashTab.style.display = "flex";
-    roleBtn.textContent = "👷 Coordinateur";
+    roleBtn.textContent = "📊 Coordinateur";
+    tabDash.style.display = "flex";
+    tabAgent.style.display = "none";
+  } else if (r === "agent") {
+    roleBtn.textContent = "🦺 Agent";
+    tabAgent.style.display = "flex";
+    tabDash.style.display = "none";
   } else {
-    dashTab.style.display = "none";
     roleBtn.textContent = "👤 Citoyen";
+    tabDash.style.display = "none";
+    tabAgent.style.display = "none";
   }
 }
 
@@ -651,12 +712,17 @@ function updatePinDots() {
 }
 
 function pinSubmit() {
-  if (pinValue === COORD_PIN) {
-    role = "coordinateur";
-    localStorage.setItem("seniya_role", "coordinateur");
+  var correctPin = pendingRoleLogin === "agent" ? AGENT_PIN : COORD_PIN;
+  if (pinValue === correctPin) {
+    role = pendingRoleLogin;
+    localStorage.setItem("seniya_role", role);
     closePinOverlay();
-    applyRole("coordinateur");
-    switchTab("dashboard", document.getElementById("tabDash"));
+    applyRole(role);
+    if (role === "coordinateur") {
+      switchTab("dashboard", document.getElementById("tabDash"));
+    } else if (role === "agent") {
+      switchTab("agent", document.getElementById("tabAgent"));
+    }
     fetchSignals();
   } else {
     document.getElementById("pinError").style.display = "block";
@@ -856,9 +922,10 @@ function fetchSignals() {
   .then(function(data) {
     if (Array.isArray(data)) {
       DB = data;
-      mergeLocalPhotos(); // Injecter photos après depuis localStorage
+      mergeLocalPhotos();
       renderCitizenList();
       renderCoordinatorList();
+      renderAgentList();
       updateBadge();
     }
   })
@@ -876,7 +943,147 @@ function updateBadge() {
   }
 }
 
-// ===== RENDER CITOYEN =====
+// ===== RENDER AGENT =====
+function renderAgentList() {
+  var enCours = DB.filter(function(x) { return x.statut === "encours"; });
+  var badge = document.getElementById("badgeAgent");
+  if (badge) {
+    badge.style.display = enCours.length > 0 ? "block" : "none";
+    badge.textContent = enCours.length;
+  }
+
+  var list = document.getElementById("agentList");
+  if (!list) return;
+  if (enCours.length === 0) {
+    list.innerHTML = '<div style="text-align:center; padding:48px 16px; color:var(--text3);"><div style="font-size:40px; margin-bottom:10px;">✅</div><div style="font-size:14px;">Aucun ticket en cours à traiter.</div></div>';
+    return;
+  }
+
+  list.innerHTML = enCours.map(function(s) {
+    var hasAfter = !!s.photo_after_url;
+    return '<div class="ticket-card">' +
+      '<div class="ticket-header">' +
+        '<div class="ticket-title">' + (s.type_label || "Signalement") + '</div>' +
+        '<span class="status-badge status-encours">En cours</span>' +
+      '</div>' +
+      '<div class="ticket-ref">Réf. ' + (s.ref || "—") + '</div>' +
+      '<div class="ticket-meta">📍 <b>' + s.quartier + '</b>' + (s.repere ? " · " + s.repere : "") + '</div>' +
+      '<div class="proof-container">' +
+        '<div class="proof-box">' +
+          (s.photo_url ? '<img src="' + s.photo_url + '" onerror="this.style.display=\'none\'">' : '<div class="proof-empty">Pas de photo</div>') +
+          '<div class="proof-tag">Avant</div>' +
+        '</div>' +
+        '<div class="proof-box" id="agentAfterBox_' + s.id + '">' +
+          (hasAfter ? '<img src="' + s.photo_after_url + '">' : '<div class="proof-empty">📷 À prendre</div>') +
+          '<div class="proof-tag">Après</div>' +
+        '</div>' +
+      '</div>' +
+      (hasAfter
+        ? '<div style="font-size:11px; color:var(--g2); padding:8px 10px; background:var(--g5); border-radius:8px; margin-bottom:10px;">✅ Photo après soumise. En attente de validation coordinateur.</div>'
+        : '<div style="font-size:11px; color:var(--orange); padding:8px 10px; background:#fff7ed; border-radius:8px; margin-bottom:10px;">📸 Prenez la photo après intervention pour valider votre travail.</div>'
+      ) +
+      '<div class="ticket-actions">' +
+        '<button class="btn-action photo-after" onclick="agentUploadAfter(' + s.id + ', \'' + (s.ref || "") + '\')" id="agentUploadBtn_' + s.id + '">' +
+          (hasAfter ? '📷 Remplacer photo' : '📷 Photo Après') +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+// ===== AGENT : UPLOAD PHOTO APRÈS AVEC TAMPON GPS =====
+function agentUploadAfter(id, ref) {
+  var captureInput = document.getElementById("fileAfterCapture");
+  captureInput.value = "";
+  captureInput.click();
+
+  captureInput.onchange = function() {
+    if (!captureInput.files || !captureInput.files[0]) return;
+
+    var btn = document.getElementById("agentUploadBtn_" + id);
+    if (btn) { btn.textContent = "⏳ Traitement..."; btn.disabled = true; }
+
+    // Capturer GPS au moment de la prise
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var gpsLat = pos.coords.latitude;
+      var gpsLng = pos.coords.longitude;
+      var now = new Date();
+      var dateStr = now.toLocaleDateString("fr-FR") + " " + now.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+      stampAndUpload(id, ref, captureInput.files[0], gpsLat, gpsLng, dateStr);
+    }, function() {
+      // GPS indisponible — tampon sans coords
+      var now = new Date();
+      var dateStr = now.toLocaleDateString("fr-FR") + " " + now.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+      stampAndUpload(id, ref, captureInput.files[0], null, null, dateStr);
+    }, { enableHighAccuracy: true, timeout: 8000 });
+  };
+}
+
+function stampAndUpload(id, ref, file, lat, lng, dateStr) {
+  compressImage(file, function(blob) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        // Canvas pour tampon
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        // Tampon en bas de la photo
+        var stampH = Math.max(56, img.height * 0.1);
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(0, img.height - stampH, img.width, stampH);
+
+        var fontSize = Math.max(14, img.width * 0.028);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold " + fontSize + "px Arial";
+        ctx.fillText("SÈNIYA — Réf. " + ref, 12, img.height - stampH + fontSize + 4);
+
+        var fontSize2 = Math.max(12, img.width * 0.022);
+        ctx.font = fontSize2 + "px Arial";
+        ctx.fillStyle = "#f0d878";
+        var gpsText = lat ? ("📍 " + lat.toFixed(5) + ", " + lng.toFixed(5)) : "📍 GPS indisponible";
+        ctx.fillText(gpsText + "   🕐 " + dateStr, 12, img.height - stampH + fontSize + fontSize2 + 10);
+
+        canvas.toBlob(function(stampedBlob) {
+          var stampReader = new FileReader();
+          stampReader.onload = function(ev) {
+            var base64Url = ev.target.result;
+
+            // Sauvegarder localStorage
+            saveAfterPhotoLocal(id, base64Url);
+
+            // Mettre à jour DB local
+            var record = DB.find(function(x) { return x.id === id; });
+            if (record) record.photo_after_url = base64Url;
+
+            // Afficher dans l'interface agent
+            var afterBox = document.getElementById("agentAfterBox_" + id);
+            if (afterBox) {
+              afterBox.innerHTML = '<img src="' + base64Url + '" style="width:100%;height:100%;object-fit:cover;">' +
+                '<div class="proof-tag">Après</div>';
+            }
+
+            // PATCH Supabase silencieux
+            fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + id, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
+              body: JSON.stringify({ photo_after_url: base64Url })
+            }).catch(function() {});
+
+            renderAgentList();
+          };
+          stampReader.readAsDataURL(stampedBlob);
+        }, "image/jpeg", 0.85);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(blob);
+  });
+}
 function renderCitizenList() {
   var list = document.getElementById("recentCitizenList");
   if (!DB || DB.length === 0) {
@@ -925,13 +1132,11 @@ function renderCoordinatorList() {
     if (s.statut === "nouveau") {
       actionBtns = '<button class="btn-action work" onclick="updateStatus(' + s.id + ', \'encours\')">🟠 Engager équipe</button>';
     } else if (s.statut === "encours") {
-      // Étape 1 : uploader photo après (toujours disponible)
-      var uploadBtn = '<button class="btn-action photo-after" onclick="uploadAfterPhoto(' + s.id + ', \'' + (s.ref || "") + '\')" id="uploadBtn_' + s.id + '">📷 Photo Après</button>';
-      // Étape 2 : valider résolution (actif seulement si photo après présente)
+      // Coordinateur voit la photo après (uploadée par l'agent) et valide
       var resolveBtn = s.photo_after_url
-        ? '<button class="btn-action done" onclick="markResolu(' + s.id + ', \'' + (s.ref || "") + '\', \'' + s.quartier + '\')">✅ Marquer Résolu</button>'
-        : '<button class="btn-action done" disabled title="Ajoutez la photo après d\'abord">✅ Résolu</button>';
-      actionBtns = uploadBtn + resolveBtn;
+        ? '<button class="btn-action done" onclick="markResolu(' + s.id + ', \'' + (s.ref || "") + '\', \'' + s.quartier + '\')">✅ Valider Résolu</button>'
+        : '<button class="btn-action done" disabled title="En attente de la photo après de l\'agent">⏳ Attente agent</button>';
+      actionBtns = resolveBtn;
     }
 
     var waText = "📋 *SUIVI SÈNIYA* (" + (s.ref || s.id) + ")\n"
@@ -962,7 +1167,7 @@ function renderCoordinatorList() {
         '</div>' +
       '</div>' +
       (s.statut === "encours" && !s.photo_after_url
-        ? '<div style="font-size:11px; color:var(--orange); margin-bottom:10px; padding:8px 10px; background:#fff7ed; border-radius:8px;">⚠️ Ajoutez la photo <b>Après</b> avant de valider la résolution.</div>'
+        ? '<div style="font-size:11px; color:var(--orange); margin-bottom:10px; padding:8px 10px; background:#fff7ed; border-radius:8px;">⏳ En attente de la photo <b>Après</b> de l\'agent de terrain.</div>'
         : '') +
       (s.statut === "encours" && s.photo_after_url
         ? '<div style="font-size:11px; color:var(--g2); margin-bottom:10px; padding:8px 10px; background:var(--g5); border-radius:8px;">✅ Photo après reçue. Vous pouvez valider la résolution.</div>'
@@ -1064,21 +1269,32 @@ function markResolu(id, ref, quartier) {
 function loadMap() {
   if (lMap) return;
   setTimeout(function() {
-    lMap = L.map("map", { zoomControl: true }).setView([9.6412, -13.5784], 14);
+    lMap = L.map("map", { zoomControl: true }).setView([9.645, -13.583], 13);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap", maxZoom: 19
     }).addTo(lMap);
 
-    // Zones quartiers
-    var zones = [
-      { name: "Nongo", coords: [[9.648,-13.587],[9.648,-13.572],[9.640,-13.572],[9.640,-13.587]], color: "#14532d" },
-      { name: "Kiroti", coords: [[9.640,-13.582],[9.640,-13.570],[9.634,-13.570],[9.634,-13.582]], color: "#c8a84b" },
-      { name: "Lambanyi Centre", coords: [[9.634,-13.580],[9.634,-13.568],[9.628,-13.568],[9.628,-13.580]], color: "#2563eb" }
+    // Périmètre commune de Lambanyi
+    // Limites officielles : Ouest=rivière Démoudoula (~-13.612), Est=T5 Wanindara (~-13.555)
+    // Nord=bord de mer (~9.660), Sud=route Leprince (~9.630)
+    // Centre de référence : Stade Général Lansana Conté (9.62417, -13.62667)
+    var lambanyi = [
+      [9.660, -13.612], // Nord-Ouest (rivière Démoudoula / bord de mer)
+      [9.660, -13.555], // Nord-Est (T5 / bord de mer)
+      [9.630, -13.555], // Sud-Est (T5 / route Leprince)
+      [9.630, -13.612]  // Sud-Ouest (rivière Démoudoula / route Leprince)
     ];
-    zones.forEach(function(z) {
-      L.polygon(z.coords, { color: z.color, fillColor: z.color, fillOpacity: 0.08, weight: 2, dashArray: "6,4" })
-        .addTo(lMap).bindPopup("<b>" + z.name + "</b>");
-    });
+
+    L.polygon(lambanyi, {
+      color: "#c8a84b",
+      fillColor: "#14532d",
+      fillOpacity: 0.08,
+      weight: 2.5,
+      dashArray: "8,5"
+    }).addTo(lMap).bindPopup("<b>Commune de Lambanyi</b><br>Conakry 🇬🇳<br>Population : ~385 884 hab.");
+
+    // Centrer la carte sur Lambanyi
+    lMap.setView([9.645, -13.583], 13);
 
     // Signalements
     var colors = { nouveau: "#dc2626", encours: "#ea580c", resolu: "#16a34a" };
