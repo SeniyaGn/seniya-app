@@ -317,6 +317,40 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .gps-indicator.success .gps-dot { background: var(--g4); }
 .gps-indicator.error .gps-dot { background: var(--red); }
 @keyframes gpsPulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+/* ===== DASHBOARD STATS ===== */
+.stat-card {
+  background: white; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);
+}
+.stat-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.stat-card-title { font-size: 13px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card-value { font-family: "Syne", sans-serif; font-size: 22px; font-weight: 800; color: var(--g2); }
+.stat-card-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+.progress-track { width: 100%; height: 10px; background: var(--border); border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--g3), var(--g4)); border-radius: 10px; transition: width 0.8s ease; }
+
+/* Quartier bars */
+.quartier-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.quartier-bar-label { font-size: 12px; font-weight: 700; color: var(--text2); width: 110px; flex-shrink: 0; }
+.quartier-bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 8px; overflow: hidden; }
+.quartier-bar-fill { height: 100%; border-radius: 8px; transition: width 0.6s ease; }
+.quartier-bar-count { font-size: 12px; font-weight: 800; color: var(--text); width: 24px; text-align: right; flex-shrink: 0; }
+
+/* Activity feed */
+.activity-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.activity-dot.nouveau { background: #fee2e2; }
+.activity-dot.encours { background: #ffedd5; }
+.activity-dot.resolu { background: var(--g5); }
+.activity-text { flex: 1; }
+.activity-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.activity-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
 /* ===== ROLE SELECTOR ===== */
 .role-select-btn {
   width: 100%; padding: 16px; border: 2px solid var(--border);
@@ -425,10 +459,50 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
   <!-- PAGE DASHBOARD -->
   <div class="page" id="page-dashboard">
     <div class="dash-container">
+
+      <!-- Compteurs -->
       <div class="dash-summary">
         <div class="dash-count-box"><h3 id="dTotal">0</h3><p>Total</p></div>
         <div class="dash-count-box"><h3 id="dNouveau">0</h3><p>Nouveaux</p></div>
         <div class="dash-count-box"><h3 id="dResolu">0</h3><p>Résolus</p></div>
+      </div>
+
+      <!-- Taux de résolution -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">Taux de résolution</span>
+          <span class="stat-card-value" id="statTaux">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="stat-card-sub" id="statSub">0 résolu sur 0 signalements</div>
+      </div>
+
+      <!-- Top quartiers -->
+      <div class="stat-card">
+        <div class="stat-card-title" style="margin-bottom:12px;">📍 Quartiers les plus actifs</div>
+        <div id="topQuartiers"></div>
+      </div>
+
+      <!-- Délai moyen -->
+      <div class="stat-card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="stat-card-title">⏱ Délai moyen traitement</div>
+          <div class="stat-card-sub" style="margin-top:4px;" id="statDelai">Calcul en cours...</div>
+        </div>
+        <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:800; color:var(--g2);" id="statDelaiVal">—</div>
+      </div>
+
+      <!-- Fil d'activité -->
+      <div class="section-title">Activité récente</div>
+      <div id="activityFeed"></div>
+
+      <!-- Séparateur tickets -->
+      <div style="display:flex; align-items:center; gap:10px; margin:16px 0 12px;">
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+        <div style="font-family:'Syne',sans-serif; font-size:13px; color:var(--text3); font-weight:700;">TICKETS</div>
+        <div style="flex:1; height:1px; background:var(--border);"></div>
       </div>
 
       <!-- Filtres -->
@@ -1103,13 +1177,84 @@ function renderCitizenList() {
   }).join("");
 }
 
-// ===== RENDER DASHBOARD =====
-function renderCoordinatorList() {
+// ===== RENDER DASHBOARD STATS =====
+function renderDashboard() {
+  var total = DB.length;
   var nouveaux = DB.filter(function(x) { return x.statut === "nouveau"; }).length;
+  var encours = DB.filter(function(x) { return x.statut === "encours"; }).length;
   var resolu = DB.filter(function(x) { return x.statut === "resolu"; }).length;
-  document.getElementById("dTotal").textContent = DB.length;
+
+  document.getElementById("dTotal").textContent = total;
   document.getElementById("dNouveau").textContent = nouveaux;
   document.getElementById("dResolu").textContent = resolu;
+
+  // Taux de résolution
+  var taux = total > 0 ? Math.round((resolu / total) * 100) : 0;
+  document.getElementById("statTaux").textContent = taux + "%";
+  document.getElementById("progressFill").style.width = taux + "%";
+  document.getElementById("statSub").textContent = resolu + " résolu" + (resolu > 1 ? "s" : "") + " sur " + total + " signalement" + (total > 1 ? "s" : "");
+
+  // Top quartiers
+  var quartierMap = {};
+  DB.forEach(function(s) {
+    var q = s.quartier || "Autre";
+    quartierMap[q] = (quartierMap[q] || 0) + 1;
+  });
+  var quartierList = Object.keys(quartierMap).map(function(k) { return { name: k, count: quartierMap[k] }; });
+  quartierList.sort(function(a, b) { return b.count - a.count; });
+  var top3 = quartierList.slice(0, 3);
+  var maxCount = top3.length > 0 ? top3[0].count : 1;
+  var barColors = ["#14532d", "#c8a84b", "#2563eb"];
+  var topHtml = top3.length === 0
+    ? '<div style="font-size:12px; color:var(--text3); text-align:center; padding:8px 0;">Aucune donnée</div>'
+    : top3.map(function(q, i) {
+        return '<div class="quartier-bar-row">' +
+          '<div class="quartier-bar-label">' + q.name + '</div>' +
+          '<div class="quartier-bar-track"><div class="quartier-bar-fill" style="width:' + Math.round((q.count / maxCount) * 100) + '%; background:' + barColors[i] + ';"></div></div>' +
+          '<div class="quartier-bar-count">' + q.count + '</div>' +
+        '</div>';
+      }).join("");
+  document.getElementById("topQuartiers").innerHTML = topHtml;
+
+  // Délai moyen (entre created_at et updated_at pour les résolus)
+  var resolus = DB.filter(function(x) { return x.statut === "resolu" && x.created_at && x.updated_at; });
+  if (resolus.length > 0) {
+    var totalMs = resolus.reduce(function(acc, s) {
+      return acc + (new Date(s.updated_at) - new Date(s.created_at));
+    }, 0);
+    var avgMs = totalMs / resolus.length;
+    var avgH = Math.round(avgMs / 3600000);
+    var delaiStr = avgH < 24 ? avgH + "h" : Math.round(avgH / 24) + "j";
+    document.getElementById("statDelaiVal").textContent = delaiStr;
+    document.getElementById("statDelai").textContent = "Basé sur " + resolus.length + " ticket" + (resolus.length > 1 ? "s" : "") + " résolu" + (resolus.length > 1 ? "s" : "");
+  } else {
+    document.getElementById("statDelaiVal").textContent = "—";
+    document.getElementById("statDelai").textContent = "Pas encore de données";
+  }
+
+  // Fil d'activité — 5 derniers
+  var recent = DB.slice(0, 5);
+  var icons = { nouveau: "🔴", encours: "🟠", resolu: "✅" };
+  var labels = { nouveau: "Nouveau signalement", encours: "Pris en charge", resolu: "Résolu" };
+  var actHtml = recent.length === 0
+    ? '<div style="font-size:12px; color:var(--text3); text-align:center; padding:16px 0;">Aucune activité</div>'
+    : recent.map(function(s) {
+        var d = s.created_at ? new Date(s.created_at).toLocaleDateString("fr-FR", {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"}) : "";
+        return '<div class="activity-item">' +
+          '<div class="activity-dot ' + s.statut + '">' + (icons[s.statut] || "📋") + '</div>' +
+          '<div class="activity-text">' +
+            '<div class="activity-title">' + (s.type_label || "Signalement") + ' — ' + (s.quartier || "") + '</div>' +
+            '<div class="activity-meta">Réf. ' + (s.ref || "—") + ' · ' + d + '</div>' +
+          '</div>' +
+          '<span class="status-badge status-' + s.statut + '">' + (labels[s.statut] || s.statut) + '</span>' +
+        '</div>';
+      }).join("");
+  document.getElementById("activityFeed").innerHTML = actHtml;
+}
+
+// ===== RENDER COORDINATOR LIST =====
+function renderCoordinatorList() {
+  renderDashboard(); // Stats, progress, quartiers, activité
 
   var filtered = DB;
   if (currentFilter === "nouveau" || currentFilter === "encours" || currentFilter === "resolu") {
