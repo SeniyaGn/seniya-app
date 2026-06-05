@@ -26,8 +26,8 @@
   --card: #ffffff;
   --border: #e2e8f0;
   --text: #0f172a;
-  --text2: #475569;
-  --text3: #94a3b8;
+  --text2: #374151;
+  --text3: #6b7280;
   --radius: 20px;
   --radius-sm: 12px;
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
@@ -50,7 +50,7 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .splash-title span { color: var(--gold); }
 .splash-sub { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; margin-bottom: 52px; }
 .splash-bar { width: 180px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-.splash-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 10px; animation: splashLoad 2.2s ease forwards; }
+.splash-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 10px; animation: splashLoad 1s ease forwards; }
 @keyframes splashLoad { from { width: 0; } to { width: 100%; } }
 
 /* ===== APP ===== */
@@ -390,6 +390,9 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
     <div class="hero-cta-box">
       <h1>Rendre Lambanyi Propre</h1>
       <p>Signalez un problème en moins de 15 secondes.</p>
+      <div id="heroBadge" style="display:none; background:rgba(255,255,255,0.15); border-radius:20px; padding:6px 14px; font-size:12px; font-weight:700; color:var(--gold2); margin-bottom:14px; display:inline-block;">
+        <span id="heroStats">...</span>
+      </div>
       <button class="action-trigger-btn" onclick="document.getElementById('fileCapture').click()">
         📸 PRENDRE UNE PHOTO
       </button>
@@ -448,6 +451,10 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 
       <div class="section-title">Signalements récents à Lambanyi</div>
       <div id="recentCitizenList"></div>
+
+      <!-- Mini carte accueil -->
+      <div class="section-title">Carte des signalements</div>
+      <div id="miniMap" style="height:200px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); margin-bottom:16px;"></div>
     </div>
   </div>
 
@@ -705,7 +712,7 @@ window.addEventListener("load", function() {
       applyRole(role);
       fetchSignals();
     }, 600);
-  }, 2400);
+  }, 1200);
 });
 
 // ===== ROLE =====
@@ -1159,22 +1166,69 @@ function stampAndUpload(id, ref, file, lat, lng, dateStr) {
   });
 }
 function renderCitizenList() {
+  // Hero badge preuve sociale
+  var total = DB.length;
+  var resolus = DB.filter(function(x) { return x.statut === "resolu"; }).length;
+  var heroBadge = document.getElementById("heroBadge");
+  var heroStats = document.getElementById("heroStats");
+  if (heroBadge && heroStats) {
+    if (total > 0) {
+      heroBadge.style.display = "inline-block";
+      heroStats.textContent = "✅ " + resolus + " problème" + (resolus > 1 ? "s" : "") + " résolu" + (resolus > 1 ? "s" : "") + " · " + total + " signalement" + (total > 1 ? "s" : "");
+    } else {
+      heroBadge.style.display = "none";
+    }
+  }
+
   var list = document.getElementById("recentCitizenList");
   if (!DB || DB.length === 0) {
-    list.innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text3); padding:24px 0;">Aucun signalement actif.</p>';
+    list.innerHTML =
+      '<div style="text-align:center; padding:32px 16px; background:white; border-radius:var(--radius); border:2px dashed var(--border);">' +
+        '<div style="font-size:40px; margin-bottom:10px;">🌿</div>' +
+        '<div style="font-size:15px; font-weight:800; color:var(--g2); margin-bottom:6px;">Soyez le premier à signaler !</div>' +
+        '<div style="font-size:13px; color:var(--text2); line-height:1.6;">Aucun signalement actif pour l\'instant.<br>Ensemble, gardons Lambanyi propre. 🇬🇳</div>' +
+      '</div>';
+  } else {
+    list.innerHTML = DB.slice(0, 6).map(function(s) {
+      var label = s.statut === "nouveau" ? "Nouveau" : s.statut === "encours" ? "En cours" : "Résolu";
+      return '<div class="recent-card">' +
+        '<img class="recent-img" src="' + (s.photo_url || "https://placehold.co/52x52/e2e8f0/475569?text=📷") + '" onerror="this.src=\'https://placehold.co/52x52/e2e8f0/475569?text=📷\'">' +
+        '<div class="recent-info">' +
+          '<div class="recent-type">' + (s.type_label || "Signalement") + '</div>' +
+          '<div class="recent-loc">📍 ' + (s.quartier || "") + (s.repere ? " · " + s.repere : "") + '</div>' +
+        '</div>' +
+        '<span class="status-badge status-' + s.statut + '">' + label + '</span>' +
+      '</div>';
+    }).join("");
+  }
+
+  // Mini carte accueil
+  initMiniMap();
+}
+
+var miniMapInited = false;
+function initMiniMap() {
+  if (miniMapInited) {
+    // Juste rafraîchir les marqueurs
     return;
   }
-  list.innerHTML = DB.slice(0, 6).map(function(s) {
-    var label = s.statut === "nouveau" ? "Nouveau" : s.statut === "encours" ? "En cours" : "Résolu";
-    return '<div class="recent-card">' +
-      '<img class="recent-img" src="' + (s.photo_url || "https://placehold.co/52x52/e2e8f0/94a3b8?text=📷") + '" onerror="this.src=\'https://placehold.co/52x52/e2e8f0/94a3b8?text=📷\'">' +
-      '<div class="recent-info">' +
-        '<div class="recent-type">' + (s.type_label || "Signalement") + '</div>' +
-        '<div class="recent-loc">📍 ' + (s.quartier || "") + (s.repere ? " · " + s.repere : "") + '</div>' +
-      '</div>' +
-      '<span class="status-badge status-' + s.statut + '">' + label + '</span>' +
-    '</div>';
-  }).join("");
+  var el = document.getElementById("miniMap");
+  if (!el) return;
+  setTimeout(function() {
+    miniMapInited = true;
+    var mMap = L.map("miniMap", { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false })
+      .setView([9.645, -13.583], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(mMap);
+    var colors = { nouveau: "#dc2626", encours: "#ea580c", resolu: "#16a34a" };
+    DB.forEach(function(s) {
+      if (s.lat && s.lng) {
+        L.circleMarker([s.lat, s.lng], {
+          radius: 8, fillColor: colors[s.statut] || "#94a3b8",
+          color: "#fff", weight: 2, fillOpacity: 0.9
+        }).addTo(mMap).bindPopup("<b>" + (s.type_label || "") + "</b><br>" + s.quartier);
+      }
+    });
+  }, 300);
 }
 
 // ===== RENDER DASHBOARD STATS =====
