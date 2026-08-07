@@ -223,6 +223,16 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 .btn-action.wa { background: #dcfce7; color: #16a34a; }
 .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Google Maps button */
+.btn-maps {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; padding: 13px 16px; margin-bottom: 12px;
+  background: white; border: 2px solid #4285f4; border-radius: var(--radius-sm);
+  color: #4285f4; font-size: 14px; font-weight: 800; text-decoration: none;
+  text-align: center; transition: all 0.2s;
+}
+.btn-maps:active { background: #eff6ff; transform: scale(0.98); }
+
 /* ===== SUCCESS MODAL ===== */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
 .overlay.show { opacity: 1; pointer-events: all; }
@@ -1403,6 +1413,10 @@ function renderAgentList() {
 
   list.innerHTML = enCours.map(function(s) {
     var hasAfter = !!s.photo_after_url;
+    var mapsUrl = (s.lat && s.lng)
+      ? "https://www.google.com/maps/dir/?api=1&destination=" + s.lat + "," + s.lng
+      : null;
+
     return '<div class="ticket-card">' +
       '<div class="ticket-header">' +
         '<div class="ticket-title">' + (s.type_label || "Signalement") + '</div>' +
@@ -1410,6 +1424,13 @@ function renderAgentList() {
       '</div>' +
       '<div class="ticket-ref">Réf. ' + (s.ref || "—") + '</div>' +
       '<div class="ticket-meta">📍 <b>' + s.quartier + '</b>' + (s.repere ? " · " + s.repere : "") + '</div>' +
+
+      // Bouton Google Maps
+      (mapsUrl
+        ? '<a href="' + mapsUrl + '" target="_blank" class="btn-maps">🗺️ Ouvrir l\'itinéraire Google Maps<span style="font-size:10px; display:block; opacity:0.75; margin-top:2px;">' + parseFloat(s.lat).toFixed(5) + ', ' + parseFloat(s.lng).toFixed(5) + '</span></a>'
+        : '<div style="font-size:11px; color:var(--text3); padding:8px 0;">📡 Coordonnées GPS non disponibles</div>'
+      ) +
+
       '<div class="proof-container">' +
         '<div class="proof-box">' +
           (s.photo_url ? '<img src="' + s.photo_url + '" onerror="this.style.display=\'none\'">' : '<div class="proof-empty">Pas de photo</div>') +
