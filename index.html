@@ -454,11 +454,12 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
 <body>
 
 <!-- SPLASH -->
-<div id="splash">
+<div id="splash" onclick="skipSplash()">
   <img src="https://raw.githubusercontent.com/SeniyaGn/seniya-app/main/logo.png" class="splash-logo" alt="SÈNIYA">
   <div class="splash-title">SÈN<span>I</span>YA</div>
   <div class="splash-sub">Commune de Lambanyi · Conakry</div>
   <div class="splash-bar"><div class="splash-fill"></div></div>
+  <div style="position:absolute; bottom:32px; font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:1px;">Appuyez pour passer</div>
 </div>
 
 <!-- APP -->
@@ -596,7 +597,7 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
         <div class="stat-card" style="display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div class="stat-card-title">⏱ Délai moyen traitement</div>
-            <div class="stat-card-sub" style="margin-top:4px;" id="statDelai">Calcul en cours...</div>
+            <div class="stat-card-sub" style="margin-top:4px;" id="statDelai">Aucun ticket résolu pour l'instant</div>
           </div>
           <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:800; color:var(--g2);" id="statDelaiVal">—</div>
         </div>
@@ -839,17 +840,36 @@ function setGPSError(msg) {
 }
 
 // ===== SPLASH =====
-window.addEventListener("load", function() {
+var splashDone = false;
+
+function skipSplash() {
+  if (splashDone) return;
+  splashDone = true;
+  document.getElementById("splash").classList.add("hide");
   setTimeout(function() {
-    document.getElementById("splash").classList.add("hide");
-    setTimeout(function() {
-      document.getElementById("splash").style.display = "none";
-      document.getElementById("app").classList.add("ready");
-      document.getElementById("bottomNav").style.display = "flex";
-      applyRole(role);
-      fetchSignals();
-    }, 600);
-  }, 1200);
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("app").classList.add("ready");
+    document.getElementById("bottomNav").style.display = "flex";
+    applyRole(role);
+    fetchSignals();
+  }, 400);
+}
+
+window.addEventListener("load", function() {
+  // Visiteurs déjà venus → pas de splash
+  var alreadyVisited = localStorage.getItem("seniya_visited");
+  if (alreadyVisited) {
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("app").classList.add("ready");
+    document.getElementById("bottomNav").style.display = "flex";
+    applyRole(role);
+    fetchSignals();
+    splashDone = true;
+    return;
+  }
+  localStorage.setItem("seniya_visited", "1");
+  // Première visite : splash 1.5s max
+  setTimeout(function() { skipSplash(); }, 1500);
 });
 
 // ===== ROLE =====
@@ -896,11 +916,29 @@ function applyRole(r) {
 }
 
 // ===== PIN =====
+var pinAttempts = 0;
+var pinLockedUntil = 0;
+
 function openPinOverlay() {
   pinValue = "";
   updatePinDots();
   document.getElementById("pinError").style.display = "none";
   document.getElementById("pinOverlay").classList.add("show");
+  checkPinLock();
+}
+
+function checkPinLock() {
+  var now = Date.now();
+  if (pinLockedUntil > now) {
+    var remaining = Math.ceil((pinLockedUntil - now) / 1000);
+    document.getElementById("pinError").textContent = "🔒 Bloqué — réessayez dans " + remaining + "s";
+    document.getElementById("pinError").style.display = "block";
+    setTimeout(function() {
+      if (document.getElementById("pinOverlay").classList.contains("show")) checkPinLock();
+    }, 1000);
+    return true;
+  }
+  return false;
 }
 
 function closePinOverlay() {
@@ -910,6 +948,7 @@ function closePinOverlay() {
 }
 
 function pinKey(k) {
+  if (checkPinLock()) return;
   if (pinValue.length < 4) {
     pinValue += k;
     updatePinDots();
@@ -972,12 +1011,23 @@ function pinSubmit() {
 }
 
 function showPinError() {
-  document.getElementById("pinError").style.display = "block";
+  pinAttempts++;
   pinValue = "";
   updatePinDots();
-  setTimeout(function() {
-    document.getElementById("pinError").style.display = "none";
-  }, 2000);
+  if (pinAttempts >= 5) {
+    pinLockedUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
+    pinAttempts = 0;
+    document.getElementById("pinError").textContent = "🔒 5 tentatives échouées. Bloqué 5 minutes.";
+    document.getElementById("pinError").style.display = "block";
+    checkPinLock();
+  } else {
+    var restantes = 5 - pinAttempts;
+    document.getElementById("pinError").textContent = "❌ Code incorrect. " + restantes + " tentative" + (restantes > 1 ? "s" : "") + " restante" + (restantes > 1 ? "s" : "") + ".";
+    document.getElementById("pinError").style.display = "block";
+    setTimeout(function() {
+      document.getElementById("pinError").style.display = "none";
+    }, 2500);
+  }
 }
 
 // ===== NAV =====
