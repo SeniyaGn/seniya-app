@@ -945,7 +945,10 @@ function submitReport() {
       headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" },
       body: blob
     })
-    .then(function() {
+    .then(function(res) {
+      if (!res.ok) {
+        return res.text().then(function(t) { throw new Error("Storage: " + res.status + " — " + t); });
+      }
       var photoUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
       var autreDescVal = selectedCategoryVal === "autre"
         ? (document.getElementById("autreDesc") ? document.getElementById("autreDesc").value.trim() : "")
@@ -986,9 +989,10 @@ function submitReport() {
       resetForm();
       fetchSignals();
     })
-    .catch(function() {
+    .catch(function(err) {
       btn.disabled = false; btn.textContent = "🚀 ENVOYER LE SIGNALEMENT";
-      alert("Erreur de connexion. Vérifiez votre réseau et réessayez.");
+      console.error("Erreur submitReport:", err);
+      alert("Erreur : " + (err.message || "Connexion échouée") + "\n\nVérifiez votre réseau et réessayez.");
     });
   });
 }
