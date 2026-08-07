@@ -417,6 +417,16 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
           <div class="category-card" onclick="selectCategory('autre', this)"><span class="cat-emoji">⚠️</span><span class="cat-title">Autre Problème</span></div>
         </div>
 
+        <!-- Champ description — visible uniquement si "Autre Problème" sélectionné -->
+        <div id="autreDescBox" style="display:none; margin-bottom:14px;">
+          <div class="loc-label">DÉCRIVEZ BRIÈVEMENT LE PROBLÈME <span style="color:var(--red);">*</span></div>
+          <textarea class="input-minimal" id="autreDesc" rows="3" maxlength="200"
+            placeholder="Ex: Déversement d'eaux usées devant la mosquée..."
+            oninput="validateForm()"
+            style="resize:none; height:90px;"></textarea>
+          <div style="font-size:11px; color:var(--text3); text-align:right; margin-top:-8px;" id="autreDescCount">0/200</div>
+        </div>
+
         <!-- Localisation card -->
         <div class="loc-card">
           <div class="loc-card-title">📍 Localisation</div>
@@ -853,6 +863,24 @@ function selectCategory(cat, el) {
   selectedCategoryVal = cat;
   document.querySelectorAll(".category-card").forEach(function(x) { x.classList.remove("selected"); });
   el.classList.add("selected");
+
+  // Afficher/masquer le champ description pour "Autre"
+  var autreBox = document.getElementById("autreDescBox");
+  var autreDesc = document.getElementById("autreDesc");
+  var autreCount = document.getElementById("autreDescCount");
+  if (cat === "autre") {
+    autreBox.style.display = "block";
+    if (autreDesc) {
+      autreDesc.oninput = function() {
+        autreCount.textContent = autreDesc.value.length + "/200";
+        validateForm();
+      };
+      autreDesc.focus();
+    }
+  } else {
+    autreBox.style.display = "none";
+    if (autreDesc) autreDesc.value = "";
+  }
   validateForm();
 }
 
@@ -860,7 +888,13 @@ function validateForm() {
   var hasPhoto = document.getElementById("fileCapture").files.length > 0;
   var hasCat = selectedCategoryVal !== "";
   var hasGPS = gpsReady === true;
-  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat && hasGPS);
+  // Si "Autre", la description est obligatoire
+  var hasAutreDesc = true;
+  if (selectedCategoryVal === "autre") {
+    var desc = document.getElementById("autreDesc");
+    hasAutreDesc = desc && desc.value.trim().length >= 5;
+  }
+  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat && hasGPS && hasAutreDesc);
 }
 
 function compressImage(file, callback) {
@@ -913,16 +947,22 @@ function submitReport() {
     })
     .then(function() {
       var photoUrl = SUPABASE_URL + "/storage/v1/object/public/photos/" + path;
+      var autreDescVal = selectedCategoryVal === "autre"
+        ? (document.getElementById("autreDesc") ? document.getElementById("autreDesc").value.trim() : "")
+        : "";
+      var typeLabel = TYPE_LABELS[selectedCategoryVal];
+      if (autreDescVal) typeLabel = "⚠️ Autre : " + autreDescVal;
+
       return fetch(SUPABASE_URL + "/rest/v1/signalements", {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
         body: JSON.stringify({
           ref: ref,
           type: selectedCategoryVal,
-          type_label: TYPE_LABELS[selectedCategoryVal],
+          type_label: typeLabel,
           quartier: quartier,
           repere: repere,
-          description: "Signalement citoyen direct depuis l'application mobile.",
+          description: autreDescVal || "Signalement citoyen direct depuis l'application mobile.",
           urgence: "medium",
           statut: "nouveau",
           lat: currentLat || 9.6412,
@@ -937,8 +977,9 @@ function submitReport() {
       var waText = "🔴 *NOUVEAU SIGNALEMENT SÈNIYA* (" + ref + ")\n"
         + "📍 Quartier : " + quartier + "\n"
         + "📌 Repère : " + repere + "\n"
-        + "📢 Type : " + TYPE_LABELS[selectedCategoryVal] + "\n\n"
-        + "Coordinateur, merci de traiter la demande. 🇬🇳";
+        + "📢 Type : " + typeLabel + "\n"
+        + (autreDescVal ? "📝 Description : " + autreDescVal + "\n" : "")
+        + "\nCoordinateur, merci de traiter la demande. 🇬🇳";
 
       document.getElementById("waShareBtn").href = "https://wa.me/" + COORD_WA + "?text=" + encodeURIComponent(waText);
       document.getElementById("successOverlay").classList.add("show");
@@ -961,8 +1002,14 @@ function resetForm() {
   selectedCategoryVal = "";
   gpsReady = false;
   currentLat = null; currentLng = null;
+  var autreDesc = document.getElementById("autreDesc");
+  if (autreDesc) autreDesc.value = "";
+  var autreDescBox = document.getElementById("autreDescBox");
+  if (autreDescBox) autreDescBox.style.display = "none";
+  var autreDescCount = document.getElementById("autreDescCount");
+  if (autreDescCount) autreDescCount.textContent = "0/200";
   var btn = document.getElementById("gpsBtn");
-  if (btn) { btn.className = "btn-gps"; document.getElementById("gpsBtnIcon").textContent = "📍"; document.getElementById("gpsBtnText").textContent = "ACTIVER MA LOCALISATION"; }
+  if (btn) { btn.className = "btn-gps"; document.getElementById("gpsBtnIcon").textContent = "📡"; document.getElementById("gpsBtnText").textContent = "Détecter ma position GPS"; }
   var ind = document.getElementById("gpsIndicator");
   if (ind) ind.style.display = "none";
   document.querySelectorAll(".category-card").forEach(function(x) { x.classList.remove("selected"); });
