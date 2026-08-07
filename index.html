@@ -432,7 +432,7 @@ body { font-family: "Plus Jakarta Sans", sans-serif; background: var(--bg); colo
           <div class="loc-card-title">📍 Localisation</div>
 
           <div class="loc-label">QUARTIER <span style="color:var(--red);">*</span></div>
-          <select class="input-minimal" id="fieldQuartier">
+          <select class="input-minimal" id="fieldQuartier" onchange="validateForm()">
             <option value="" disabled selected>Sélectionner le quartier</option>
             <option value="Lambanyi Centre">Lambanyi Centre</option>
             <option value="Nongo">Nongo</option>
@@ -888,13 +888,13 @@ function validateForm() {
   var hasPhoto = document.getElementById("fileCapture").files.length > 0;
   var hasCat = selectedCategoryVal !== "";
   var hasGPS = gpsReady === true;
-  // Si "Autre", la description est obligatoire
+  var hasQuartier = document.getElementById("fieldQuartier").value !== "";
   var hasAutreDesc = true;
   if (selectedCategoryVal === "autre") {
     var desc = document.getElementById("autreDesc");
     hasAutreDesc = desc && desc.value.trim().length >= 5;
   }
-  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat && hasGPS && hasAutreDesc);
+  document.getElementById("submitBtn").disabled = !(hasPhoto && hasCat && hasGPS && hasQuartier && hasAutreDesc);
 }
 
 function compressImage(file, callback) {
@@ -933,7 +933,7 @@ function submitReport() {
   btn.disabled = true; btn.textContent = "⏳ Transmission en cours...";
 
   var ref = "GN-" + Math.floor(1000 + Math.random() * 9000);
-  var quartier = document.getElementById("fieldQuartier").value;
+  var quartier = document.getElementById("fieldQuartier").value || "Non précisé";
   var repere = document.getElementById("fieldNote").value || "Lambanyi";
 
   compressImage(fileInput.files[0], function(blob) {
@@ -974,11 +974,15 @@ function submitReport() {
       })
       .then(function() {
         btn.disabled = false; btn.textContent = "🚀 ENVOYER LE SIGNALEMENT";
+        var gpsStr = (currentLat && currentLng)
+          ? "📡 GPS : " + currentLat.toFixed(5) + ", " + currentLng.toFixed(5) + "\n"
+          : "";
         var waText = "🔴 *NOUVEAU SIGNALEMENT SÈNIYA* (" + ref + ")\n"
           + "📍 Quartier : " + quartier + "\n"
           + "📌 Repère : " + repere + "\n"
           + "📢 Type : " + typeLabel + "\n"
           + (autreDescVal ? "📝 Description : " + autreDescVal + "\n" : "")
+          + gpsStr
           + "\nCoordinateur, merci de traiter la demande. 🇬🇳";
         document.getElementById("waShareBtn").href = "https://wa.me/" + COORD_WA + "?text=" + encodeURIComponent(waText);
         document.getElementById("successOverlay").classList.add("show");
