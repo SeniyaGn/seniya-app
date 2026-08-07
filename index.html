@@ -1098,25 +1098,34 @@ function closeAssignModal() {
 }
 
 function assignTicket(agentId, agentNom, agentTel) {
-  fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + assigningTicketId, {
+  // Capturer les données du ticket AVANT de fermer le modal
+  var ticket = DB.find(function(x) { return x.id === assigningTicketId; });
+  var ticketId = assigningTicketId;
+  var ticketRef = assigningTicketRef;
+
+  fetch(SUPABASE_URL + "/rest/v1/signalements?id=eq." + ticketId, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
     body: JSON.stringify({ statut: "encours", agent_id: agentId, agent_nom: agentNom })
   })
   .then(function() {
     closeAssignModal();
-    // WhatsApp à l'agent
-    var ticket = DB.find(function(x) { return x.id === assigningTicketId; });
+
+    var quartier = ticket ? (ticket.quartier || "—") : "—";
+    var repere = ticket ? (ticket.repere || "—") : "—";
+    var typeLabel = ticket ? (ticket.type_label || "—") : "—";
     var gpsStr = (ticket && ticket.lat && ticket.lng)
       ? "\n📡 GPS : " + parseFloat(ticket.lat).toFixed(5) + ", " + parseFloat(ticket.lng).toFixed(5)
       : "";
-    var waMsg = "🦺 *TICKET ASSIGNÉ — SÈNIYA* (" + assigningTicketRef + ")\n"
-      + "📍 Quartier : " + (ticket ? ticket.quartier : "") + "\n"
-      + "📌 Repère : " + (ticket ? ticket.repere : "") + "\n"
-      + "📢 Type : " + (ticket ? ticket.type_label : "")
+
+    var waMsg = "🦺 *TICKET ASSIGNÉ — SÈNIYA* (" + ticketRef + ")\n"
+      + "📍 Quartier : " + quartier + "\n"
+      + "📌 Repère : " + repere + "\n"
+      + "📢 Type : " + typeLabel
       + gpsStr + "\n\n"
       + "Rendez-vous sur seniya-app.vercel.app pour uploader la photo après intervention.\n"
       + "Merci ! 🇬🇳";
+
     var tel = agentTel.replace(/\s/g, "").replace(/^\+/, "");
     window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent(waMsg), "_blank");
     fetchSignals();
