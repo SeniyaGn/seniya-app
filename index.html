@@ -2002,6 +2002,16 @@ function loadMap() {
 </script>
 
 <script>
+// ===== VERCEL ANALYTICS =====
+(function() {
+  var script = document.createElement('script');
+  script.defer = true;
+  script.src = '/_vercel/insights/script.js';
+  document.head.appendChild(script);
+})();
+</script>
+
+<script>
 // ===== SERVICE WORKER (PWA installable) =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
