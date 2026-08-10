@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SÈNIYA — Lambanyi</title>
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/logo.png">
+<meta name="apple-mobile-web-app-title" content="SÈNIYA">
 <!-- SEO & WhatsApp sharing meta tags -->
 <meta name="description" content="Signalez les problèmes d'insalubrité à Lambanyi en moins de 15 secondes. Photo, GPS, catégorie — et c'est envoyé.">
 <meta name="theme-color" content="#0b331a">
@@ -1994,6 +1998,17 @@ function loadMap() {
       }
     });
   }, 200);
+}
+</script>
+
+<script>
+// ===== SERVICE WORKER (PWA installable) =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(reg) { console.log('SÈNIYA PWA prête:', reg.scope); })
+      .catch(function(err) { console.log('SW erreur:', err); });
+  });
 }
 </script>
 </body>
