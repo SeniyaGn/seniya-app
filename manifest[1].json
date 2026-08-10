@@ -1,0 +1,35 @@
+{
+  "name": "SÈNIYA — Lambanyi",
+  "short_name": "SÈNIYA",
+  "description": "Signalez les problèmes d'insalubrité à Lambanyi en moins de 15 secondes.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b331a",
+  "theme_color": "#0b331a",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "social"],
+  "shortcuts": [
+    {
+      "name": "Signaler un problème",
+      "short_name": "Signaler",
+      "description": "Ouvrir le formulaire de signalement",
+      "url": "/",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}
