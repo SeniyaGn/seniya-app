@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/anasp.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.seniyagn.com"
+        }
+      ]
+    }
+  ]
+}
