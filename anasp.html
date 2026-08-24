@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANASP — Tableau de Bord National de l'Assainissement</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --g1: #0b331a;
+  --g2: #14532d;
+  --g3: #166534;
+  --g4: #22c55e;
+  --gold: #c8a84b;
+  --gold2: #f0d878;
+  --red: #dc2626;
+  --orange: #ea580c;
+  --blue: #2563eb;
+  --blue2: #eff6ff;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.07);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+  --sidebar: 240px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── LOGIN ──────────────────────────────────────────── */
+#loginScreen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #061a0e 0%, var(--g1) 50%, #0a2914 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  background: white; border-radius: 24px; padding: 48px 40px;
+  width: 100%; max-width: 420px; box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+}
+.login-logo { text-align: center; margin-bottom: 8px; }
+.login-logo-badge {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--g1); padding: 10px 20px; border-radius: 12px;
+  margin-bottom: 16px;
+}
+.login-logo-badge span { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: white; letter-spacing: 2px; }
+.login-logo-badge .dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
+.login-org { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+.login-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; line-height: 1.6; }
+.login-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.pin-display {
+  display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;
+}
+.pin-digit {
+  width: 48px; height: 56px; border: 2px solid var(--border); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; color: var(--g1); transition: all 0.2s;
+}
+.pin-digit.filled { border-color: var(--g2); background: var(--bg); }
+.pin-digit.active { border-color: var(--g4); box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.key {
+  padding: 16px; border: 1.5px solid var(--border); border-radius: 12px;
+  background: white; font-size: 20px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; color: var(--text); font-family: 'Inter', sans-serif;
+  text-align: center;
+}
+.key:hover { background: var(--bg); border-color: var(--g3); }
+.key:active { transform: scale(0.95); background: #f0fdf4; }
+.key.del { font-size: 16px; color: var(--text2); }
+.key.enter { background: var(--g2); color: white; border-color: var(--g2); font-size: 14px; font-weight: 700; }
+.key.enter:hover { background: var(--g1); }
+.login-error {
+  background: #fee2e2; color: var(--red); padding: 10px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; display: none;
+}
+.login-footer { text-align: center; font-size: 11px; color: var(--text3); margin-top: 24px; }
+
+/* ── APP SHELL ──────────────────────────────────────── */
+#app { display: none; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar);
+  background: var(--g1); display: flex; flex-direction: column;
+  z-index: 100; transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo-badge {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+}
+.sidebar-logo-badge .badge-icon { width: 32px; height: 32px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--g1); font-family: 'Space Grotesk', sans-serif; }
+.sidebar-logo-badge .badge-text { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: white; letter-spacing: 1px; }
+.sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.45); letter-spacing: 1px; text-transform: uppercase; }
+.sidebar-section { padding: 16px 12px 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 1.5px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 2px 8px;
+  border-radius: 10px; cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.65);
+  font-size: 13px; font-weight: 500; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+.nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 600; }
+.nav-item .nav-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+.nav-item.active .nav-icon { background: var(--gold); }
+.sidebar-bottom {
+  margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-user { display: flex; align-items: center; gap: 10px; }
+.user-avatar { width: 36px; height: 36px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--g1); flex-shrink: 0; }
+.user-name { font-size: 12px; font-weight: 600; color: white; }
+.user-role { font-size: 10px; color: rgba(255,255,255,0.45); }
+.logout-btn { margin-top: 10px; width: 100%; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+.logout-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+/* Main content */
+.main {
+  margin-left: var(--sidebar); min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+.topbar {
+  background: white; padding: 16px 32px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+.topbar-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.live-badge { display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--g2); }
+.live-dot { width: 7px; height: 7px; background: var(--g4); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.refresh-btn { padding: 8px 16px; background: var(--g2); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+.refresh-btn:hover { background: var(--g1); }
+
+/* Pages */
+.page { display: none; padding: 32px; }
+.page.active { display: block; }
+
+/* KPI Grid */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+.kpi-card {
+  background: white; border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.kpi-card.green::before { background: linear-gradient(90deg, var(--g3), var(--g4)); }
+.kpi-card.gold::before { background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+.kpi-card.red::before { background: linear-gradient(90deg, var(--red), #f87171); }
+.kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+.kpi-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.kpi-value { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 6px; }
+.kpi-change { font-size: 12px; color: var(--text2); }
+.kpi-icon { position: absolute; right: 20px; top: 20px; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.kpi-card.green .kpi-icon { background: #f0fdf4; }
+.kpi-card.gold .kpi-icon { background: #fefce8; }
+.kpi-card.red .kpi-icon { background: #fee2e2; }
+.kpi-card.blue .kpi-icon { background: var(--blue2); }
+
+/* Charts row */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+.chart-card { background: white; border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.chart-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
+.chart-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* Resolution bar */
+.res-bar-container { margin-bottom: 12px; }
+.res-bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.res-bar-label span:first-child { font-weight: 500; color: var(--text); }
+.res-bar-label span:last-child { font-weight: 700; color: var(--g2); }
+.res-bar-track { height: 10px; background: var(--bg); border-radius: 10px; overflow: hidden; }
+.res-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+/* Status pills */
+.status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.status-pill { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.pill-nouveau { background: #fee2e2; color: var(--red); }
+.pill-encours { background: #ffedd5; color: var(--orange); }
+.pill-resolu { background: #f0fdf4; color: var(--g2); }
+
+/* Table */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--border); }
+.data-table td { padding: 14px 16px; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg); }
+.data-table .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+/* Map */
+#anaspMap { height: 420px; border-radius: 12px; overflow: hidden; }
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 24px; }
+.donut-legend { flex: 1; }
+.donut-legend-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.donut-legend-item:last-child { border-bottom: none; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.legend-label { flex: 1; font-size: 13px; color: var(--text2); }
+.legend-val { font-size: 14px; font-weight: 700; color: var(--text); }
+.legend-pct { font-size: 11px; color: var(--text3); }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-dot { position: absolute; left: -21px; top: 3px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px var(--border); }
+.timeline-time { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.timeline-text { font-size: 13px; color: var(--text); }
+.timeline-ref { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* Hamburger mobile */
+.hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+.hamburger span { display: block; width: 22px; height: 2px; background: var(--text); margin: 5px 0; border-radius: 2px; transition: all 0.3s; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .donut-wrap { flex-direction: column; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar: 260px; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.2); }
+  .sidebar-overlay.show { display: block; }
+  .main { margin-left: 0; }
+  .hamburger { display: block; }
+  .page { padding: 20px 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .kpi-value { font-size: 28px; }
+  .topbar { padding: 14px 16px; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-badge">
+        <div class="dot"></div>
+        <span>SÈNIYA</span>
+        <div class="dot"></div>
+      </div>
+    </div>
+    <div class="login-org">Agence Nationale de la Salubrité Publique</div>
+    <div class="login-title">Tableau de Bord National</div>
+    <div class="login-sub">Accès réservé aux agents autorisés de l'ANASP. Entrez votre code d'accès pour consulter les données d'assainissement.</div>
+    <div class="login-label">Code d'accès</div>
+    <div class="pin-display">
+      <div class="pin-digit" id="d1"></div>
+      <div class="pin-digit" id="d2"></div>
+      <div class="pin-digit" id="d3"></div>
+      <div class="pin-digit" id="d4"></div>
+      <div class="pin-digit" id="d5"></div>
+      <div class="pin-digit" id="d6"></div>
+    </div>
+    <div class="login-error" id="loginError">Code incorrect. Veuillez réessayer.</div>
+    <div class="keypad">
+      <button class="key" onclick="kp('1')">1</button>
+      <button class="key" onclick="kp('2')">2</button>
+      <button class="key" onclick="kp('3')">3</button>
+      <button class="key" onclick="kp('4')">4</button>
+      <button class="key" onclick="kp('5')">5</button>
+      <button class="key" onclick="kp('6')">6</button>
+      <button class="key" onclick="kp('7')">7</button>
+      <button class="key" onclick="kp('8')">8</button>
+      <button class="key" onclick="kp('9')">9</button>
+      <button class="key del" onclick="kpDel()">⌫</button>
+      <button class="key" onclick="kp('0')">0</button>
+      <button class="key enter" onclick="kpSubmit()">Accéder</button>
+    </div>
+    <div class="login-footer">
+      Données en temps réel · SÈNIYA — Plateforme Nationale d'Assainissement 🇬🇳
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-badge">
+        <div class="badge-icon">S</div>
+        <div class="badge-text">SÈNIYA</div>
+      </div>
+      <div class="sidebar-logo-sub">Portail ANASP</div>
+    </div>
+
+    <div class="sidebar-section">Navigation</div>
+    <a class="nav-item active" onclick="switchPage('overview', this)">
+      <div class="nav-icon">📊</div> Vue d'ensemble
+    </a>
+    <a class="nav-item" onclick="switchPage('carte', this)">
+      <div class="nav-icon">🗺️</div> Carte nationale
+    </a>
+    <a class="nav-item" onclick="switchPage('communes', this)">
+      <div class="nav-icon">🏘️</div> Par commune
+    </a>
+    <a class="nav-item" onclick="switchPage('activite', this)">
+      <div class="nav-icon">📋</div> Activité récente
+    </a>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar">A</div>
+        <div>
+          <div class="user-name">ANASP</div>
+          <div class="user-role">Lecture seule · Guinée 🇬🇳</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">⏏ Déconnexion</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="hamburger" onclick="toggleSidebar()">
+          <span></span><span></span><span></span>
+        </button>
+        <div>
+          <div class="topbar-title" id="pageTitle">Vue d'ensemble</div>
+          <div class="topbar-sub" id="pageSubtitle">Données temps réel · Commune de Lambanyi, Conakry</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-badge"><div class="live-dot"></div> En direct</div>
+        <button class="refresh-btn" onclick="loadData()">↻ Actualiser</button>
+      </div>
+    </div>
+
+    <!-- PAGE: OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-icon">📢</div>
+          <div class="kpi-label">Total signalements</div>
+          <div class="kpi-value" id="kTotal">—</div>
+          <div class="kpi-change">Cumul depuis le lancement</div>
+        </div>
+        <div class="kpi-card gold">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-label">Taux de résolution</div>
+          <div class="kpi-value" id="kTaux">—</div>
+          <div class="kpi-change">Objectif : ≥ 70%</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-icon">🔴</div>
+          <div class="kpi-label">En attente</div>
+          <div class="kpi-value" id="kNouveau">—</div>
+          <div class="kpi-change">Signalements non traités</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-icon">⏱️</div>
+          <div class="kpi-label">Délai moyen traitement</div>
+          <div class="kpi-value" id="kDelai">—</div>
+          <div class="kpi-change">Tickets résolus</div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="charts-row">
+        <!-- Répartition par statut -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Répartition par statut</div>
+              <div class="chart-sub">État actuel des signalements</div>
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <canvas id="donutCanvas" width="140" height="140"></canvas>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <!-- Top catégories -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Types de problèmes</div>
+              <div class="chart-sub">Répartition par catégorie</div>
+            </div>
+          </div>
+          <div id="catBars"></div>
+        </div>
+      </div>
+
+      <!-- Taux résolution par commune -->
+      <div class="chart-card" style="margin-bottom: 28px;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Taux de résolution par quartier</div>
+            <div class="chart-sub">Commune de Lambanyi — pilote</div>
+          </div>
+        </div>
+        <div id="resBars"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: CARTE -->
+    <div class="page" id="page-carte">
+      <div class="chart-card" style="margin-bottom: 20px;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Carte nationale des signalements</div>
+            <div class="chart-sub">Points colorés par statut · 🔴 Nouveau · 🟠 En cours · 🟢 Résolu</div>
+          </div>
+          <div class="status-row">
+            <span class="status-pill pill-nouveau" id="mapCount-nouveau">— Nouveaux</span>
+            <span class="status-pill pill-encours" id="mapCount-encours">— En cours</span>
+            <span class="status-pill pill-resolu" id="mapCount-resolu">— Résolus</span>
+          </div>
+        </div>
+        <div id="anaspMap"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: COMMUNES -->
+    <div class="page" id="page-communes">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Analyse par commune</div>
+            <div class="chart-sub">Signalements, résolution et délais</div>
+          </div>
+        </div>
+        <table class="data-table" id="communeTable">
+          <thead>
+            <tr>
+              <th>Commune / Quartier</th>
+              <th>Signalements</th>
+              <th>Résolus</th>
+              <th>En cours</th>
+              <th>Taux résolution</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="communeBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE: ACTIVITÉ -->
+    <div class="page" id="page-activite">
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Signalements récents</div>
+              <div class="chart-sub">Derniers 20 signalements</div>
+            </div>
+          </div>
+          <div class="timeline" id="activityTimeline"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Liste détaillée</div>
+              <div class="chart-sub">Tous les signalements</div>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Réf.</th><th>Type</th><th>Quartier</th><th>Statut</th></tr>
+            </thead>
+            <tbody id="detailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────
+var SB_URL = 'https://cfuaxymixutyezprqown.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdWF4eW1peHV0eWV6cHJxb3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzYzMjQsImV4cCI6MjA5NDYxMjMyNH0.bQsmL6uSU3xuoiyCCRdLhp_w23brkVMIfMjw-ELjEsw';
+var ANASP_PIN = '262024';
+var DB = [];
+var mapInited = false;
+var anaspMap = null;
+var pinVal = '';
+var pinAttempts = parseInt(localStorage.getItem('anasp_attempts') || '0');
+var pinLocked = parseInt(localStorage.getItem('anasp_locked') || '0');
+
+// ── PIN ──────────────────────────────────────────────
+function updateDots() {
+  for (var i = 1; i <= 6; i++) {
+    var d = document.getElementById('d' + i);
+    d.textContent = i <= pinVal.length ? '●' : '';
+    d.classList.toggle('filled', i <= pinVal.length);
+    d.classList.toggle('active', i === pinVal.length + 1);
+  }
+}
+
+function kp(k) {
+  if (pinLocked > Date.now()) return;
+  if (pinVal.length < 6) { pinVal += k; updateDots(); }
+  if (pinVal.length === 6) setTimeout(kpSubmit, 200);
+}
+
+function kpDel() { pinVal = pinVal.slice(0, -1); updateDots(); }
+
+function kpSubmit() {
+  if (pinLocked > Date.now()) return;
+  if (pinVal === ANASP_PIN) {
+    pinAttempts = 0;
+    localStorage.setItem('anasp_attempts', '0');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('app').style.flexDirection = 'row';
+    loadData();
+  } else {
+    pinAttempts++;
+    localStorage.setItem('anasp_attempts', pinAttempts);
+    if (pinAttempts >= 5) {
+      pinLocked = Date.now() + 5 * 60 * 1000;
+      localStorage.setItem('anasp_locked', pinLocked);
+      document.getElementById('loginError').textContent = '🔒 5 tentatives échouées. Bloqué 5 minutes.';
+    } else {
+      document.getElementById('loginError').textContent = '❌ Code incorrect. ' + (5 - pinAttempts) + ' tentative(s) restante(s).';
+    }
+    document.getElementById('loginError').style.display = 'block';
+    pinVal = ''; updateDots();
+  }
+}
+updateDots();
+
+// ── NAVIGATION ───────────────────────────────────────
+var pageConfig = {
+  overview: { title: 'Vue d\'ensemble', sub: 'Données temps réel · Commune de Lambanyi, Conakry' },
+  carte: { title: 'Carte nationale', sub: 'Géolocalisation des signalements en temps réel' },
+  communes: { title: 'Analyse par commune', sub: 'Comparaison et performance par zone' },
+  activite: { title: 'Activité récente', sub: 'Historique des signalements et interventions' },
+};
+
+function switchPage(page, el) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageConfig[page].title;
+  document.getElementById('pageSubtitle').textContent = pageConfig[page].sub;
+  if (page === 'carte') initMap();
+  closeSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+function logout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  pinVal = ''; updateDots();
+}
+
+// ── DATA ─────────────────────────────────────────────
+function loadData() {
+  fetch(SB_URL + '/rest/v1/signalements?order=created_at.desc&limit=100', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (Array.isArray(data)) {
+      DB = data;
+      renderOverview();
+      renderCommunes();
+      renderActivite();
+      if (anaspMap) renderMapMarkers();
+    }
+  })
+  .catch(function() { console.log('Erreur chargement données'); });
+}
+
+// ── OVERVIEW ─────────────────────────────────────────
+function renderOverview() {
+  var total = DB.length;
+  var resolus = DB.filter(function(x) { return x.statut === 'resolu'; }).length;
+  var nouveaux = DB.filter(function(x) { return x.statut === 'nouveau'; }).length;
+  var encours = DB.filter(function(x) { return x.statut === 'encours'; }).length;
+  var taux = total > 0 ? Math.round((resolus / total) * 100) : 0;
+
+  document.getElementById('kTotal').textContent = total;
+  document.getElementById('kTaux').textContent = taux + '%';
+  document.getElementById('kNouveau').textContent = nouveaux + encours;
+
+  // Délai moyen
+  var resDB = DB.filter(function(x) { return x.statut === 'resolu' && x.created_at && x.updated_at; });
+  if (resDB.length > 0) {
+    var avg = resDB.reduce(function(a, s) { return a + (new Date(s.updated_at) - new Date(s.created_at)); }, 0) / resDB.length;
+    var h = Math.round(avg / 3600000);
+    document.getElementById('kDelai').textContent = h < 24 ? h + 'h' : Math.round(h / 24) + 'j';
+  } else {
+    document.getElementById('kDelai').textContent = '—';
+  }
+
+  // Donut
+  renderDonut(nouveaux, encours, resolus, total);
+
+  // Cat bars
+  var cats = {};
+  DB.forEach(function(s) {
+    var k = s.type_label || s.type || 'Autre';
+    cats[k] = (cats[k] || 0) + 1;
+  });
+  var catList = Object.keys(cats).map(function(k) { return { k: k, v: cats[k] }; }).sort(function(a, b) { return b.v - a.v; });
+  var maxCat = catList.length > 0 ? catList[0].v : 1;
+  var colors = ['#14532d', '#c8a84b', '#2563eb', '#ea580c', '#7c3aed', '#0891b2'];
+  document.getElementById('catBars').innerHTML = catList.slice(0, 5).map(function(c, i) {
+    return '<div style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">' +
+        '<span style="color:var(--text2);">' + c.k + '</span>' +
+        '<span style="font-weight:700;color:var(--text);">' + c.v + '</span>' +
+      '</div>' +
+      '<div style="height:8px;background:var(--bg);border-radius:8px;overflow:hidden;">' +
+        '<div style="height:100%;background:' + colors[i % colors.length] + ';border-radius:8px;width:' + Math.round((c.v / maxCat) * 100) + '%;transition:width 0.8s;"></div>' +
+      '</div></div>';
+  }).join('');
+
+  // Resolution bars by quartier
+  var qMap = {};
+  DB.forEach(function(s) {
+    var q = s.quartier || 'Non précisé';
+    if (!qMap[q]) qMap[q] = { total: 0, res: 0 };
+    qMap[q].total++;
+    if (s.statut === 'resolu') qMap[q].res++;
+  });
+  var qList = Object.keys(qMap).map(function(k) { return { k: k, t: qMap[k].total, r: qMap[k].res, p: Math.round((qMap[k].res / qMap[k].total) * 100) }; }).sort(function(a, b) { return b.t - a.t; });
+  document.getElementById('resBars').innerHTML = qList.map(function(q) {
+    var col = q.p >= 70 ? '#16a34a' : q.p >= 40 ? '#ea580c' : '#dc2626';
+    return '<div class="res-bar-container">' +
+      '<div class="res-bar-label"><span>' + q.k + ' <span style="color:var(--text3);font-size:11px;">(' + q.t + ' signalements)</span></span><span style="color:' + col + ';">' + q.p + '%</span></div>' +
+      '<div class="res-bar-track"><div class="res-bar-fill" style="width:' + q.p + '%;background:' + col + ';"></div></div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderDonut(nouveau, encours, resolu, total) {
+  var canvas = document.getElementById('donutCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var cx = 70, cy = 70, ro = 58, ri = 38;
+  ctx.clearRect(0, 0, 140, 140);
+
+  var data = [
+    { val: resolu, color: '#16a34a', label: 'Résolus' },
+    { val: encours, color: '#ea580c', label: 'En cours' },
+    { val: nouveau, color: '#dc2626', label: 'Nouveaux' },
+  ];
+  var start = -Math.PI / 2;
+  data.forEach(function(d) {
+    if (total === 0 || d.val === 0) return;
+    var slice = (d.val / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, ro, start, start + slice);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    start += slice;
+  });
+  // Hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, ri, 0, 2 * Math.PI);
+  ctx.fillStyle = 'white';
+  ctx.fill();
+  // Center text
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 20px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy - 8);
+  ctx.font = '11px Inter, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('total', cx, cy + 10);
+
+  // Legend
+  document.getElementById('donutLegend').innerHTML = data.map(function(d) {
+    var pct = total > 0 ? Math.round((d.val / total) * 100) : 0;
+    return '<div class="donut-legend-item">' +
+      '<div class="legend-dot" style="background:' + d.color + ';"></div>' +
+      '<div class="legend-label">' + d.label + '</div>' +
+      '<div class="legend-val">' + d.val + '</div>' +
+      '<div class="legend-pct">&nbsp;' + pct + '%</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── CARTE ────────────────────────────────────────────
+function initMap() {
+  if (mapInited) { renderMapMarkers(); return; }
+  mapInited = true;
+  setTimeout(function() {
+    anaspMap = L.map('anaspMap').setView([9.645, -13.583], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(anaspMap);
+    // Lambanyi polygon
+    L.polygon([[9.660,-13.612],[9.660,-13.555],[9.630,-13.555],[9.630,-13.612]], {
+      color: '#c8a84b', fillColor: '#14532d', fillOpacity: 0.06, weight: 2, dashArray: '8,5'
+    }).addTo(anaspMap).bindPopup('<b>Commune de Lambanyi</b><br>Pilote SÈNIYA 🇬🇳');
+    renderMapMarkers();
+  }, 300);
+}
+
+function renderMapMarkers() {
+  if (!anaspMap) return;
+  var colors = { nouveau: '#dc2626', encours: '#ea580c', resolu: '#16a34a' };
+  var counts = { nouveau: 0, encours: 0, resolu: 0 };
+  DB.forEach(function(s) {
+    if (s.lat && s.lng) {
+      if (counts[s.statut] !== undefined) counts[s.statut]++;
+      L.circleMarker([s.lat, s.lng], {
+        radius: 10, fillColor: colors[s.statut] || '#94a3b8',
+        color: '#fff', weight: 2, fillOpacity: 0.9
+      }).addTo(anaspMap).bindPopup(
+        '<b>' + (s.type_label || 'Signalement') + '</b><br>' +
+        '📍 ' + s.quartier + '<br>Réf. ' + (s.ref || '—') + '<br>Statut : ' + s.statut
+      );
+    }
+  });
+  ['nouveau','encours','resolu'].forEach(function(st) {
+    var el = document.getElementById('mapCount-' + st);
+    if (el) el.textContent = counts[st] + ' ' + (st === 'nouveau' ? 'Nouveaux' : st === 'encours' ? 'En cours' : 'Résolus');
+  });
+}
+
+// ── COMMUNES ─────────────────────────────────────────
+function renderCommunes() {
+  var qMap = {};
+  DB.forEach(function(s) {
+    var q = s.quartier || 'Non précisé';
+    if (!qMap[q]) qMap[q] = { total: 0, res: 0, enc: 0, nou: 0 };
+    qMap[q].total++;
+    if (s.statut === 'resolu') qMap[q].res++;
+    else if (s.statut === 'encours') qMap[q].enc++;
+    else qMap[q].nou++;
+  });
+  var rows = Object.keys(qMap).map(function(k) {
+    var d = qMap[k];
+    var pct = Math.round((d.res / d.total) * 100);
+    var statusColor = pct >= 70 ? '#16a34a' : pct >= 40 ? '#ea580c' : '#dc2626';
+    var statusText = pct >= 70 ? 'Bon' : pct >= 40 ? 'En progrès' : 'Critique';
+    return '<tr>' +
+      '<td><b>' + k + '</b></td>' +
+      '<td>' + d.total + '</td>' +
+      '<td style="color:#16a34a;font-weight:700;">' + d.res + '</td>' +
+      '<td style="color:#ea580c;font-weight:700;">' + d.enc + '</td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:6px;background:var(--bg);border-radius:6px;overflow:hidden;"><div style="height:100%;width:' + pct + '%;background:' + statusColor + ';border-radius:6px;"></div></div><span style="font-weight:700;color:' + statusColor + ';font-size:13px;">' + pct + '%</span></div></td>' +
+      '<td><span class="badge" style="background:' + (statusColor === '#16a34a' ? '#f0fdf4' : statusColor === '#ea580c' ? '#fff7ed' : '#fee2e2') + ';color:' + statusColor + ';">' + statusText + '</span></td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('communeBody').innerHTML = rows;
+}
+
+// ── ACTIVITÉ ─────────────────────────────────────────
+function renderActivite() {
+  var icons = { nouveau: '🔴', encours: '🟠', resolu: '✅' };
+  var dotColors = { nouveau: '#dc2626', encours: '#ea580c', resolu: '#16a34a' };
+
+  document.getElementById('activityTimeline').innerHTML = DB.slice(0, 15).map(function(s) {
+    var d = s.created_at ? new Date(s.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    return '<div class="timeline-item">' +
+      '<div class="timeline-dot" style="background:' + (dotColors[s.statut] || '#94a3b8') + ';"></div>' +
+      '<div class="timeline-time">' + d + '</div>' +
+      '<div class="timeline-text">' + (icons[s.statut] || '📋') + ' ' + (s.type_label || 'Signalement') + ' — <b>' + (s.quartier || '') + '</b></div>' +
+      '<div class="timeline-ref">Réf. ' + (s.ref || '—') + (s.repere ? ' · ' + s.repere : '') + '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('detailBody').innerHTML = DB.map(function(s) {
+    var col = s.statut === 'resolu' ? '#16a34a' : s.statut === 'encours' ? '#ea580c' : '#dc2626';
+    var bg = s.statut === 'resolu' ? '#f0fdf4' : s.statut === 'encours' ? '#fff7ed' : '#fee2e2';
+    var label = s.statut === 'resolu' ? 'Résolu' : s.statut === 'encours' ? 'En cours' : 'Nouveau';
+    return '<tr>' +
+      '<td style="font-weight:700;font-size:12px;color:var(--text3);">' + (s.ref || '—') + '</td>' +
+      '<td style="font-size:12px;">' + (s.type_label || '—') + '</td>' +
+      '<td style="font-size:12px;">' + (s.quartier || '—') + '</td>' +
+      '<td><span class="badge" style="background:' + bg + ';color:' + col + ';">' + label + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+// Auto-refresh toutes les 2 minutes
+setInterval(loadData, 120000);
+</script>
+</body>
+</html>
