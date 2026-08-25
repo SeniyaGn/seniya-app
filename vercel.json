@@ -1,14 +1,18 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/",
-      "destination": "/anasp.html",
+      "src": "/",
+      "dest": "/anasp.html",
       "has": [
         {
           "type": "host",
           "value": "admin.seniyagn.com"
         }
       ]
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
